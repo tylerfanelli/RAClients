@@ -1,0 +1,17 @@
+[package]
+name = "reference-kbs-client"
+version = "0.1.0"
+edition = "2021"
+authors = ["Stefano Garzarella <sgarzare@redhat.com>"]
+
+[features]
+default = [ "std" ]
+alloc = [ "kbs-types/alloc", "serde/alloc", "serde_json/alloc" ]
+std = [ "kbs-types/std", "serde/std", "serde_json/std" ]
+
+[dependencies]
+#kbs-types = { version = "0.5.0", default-features = false }
+kbs-types = { git = "https://github.com/virtee/kbs-types", default-features = false }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0", default-features = false }
+
