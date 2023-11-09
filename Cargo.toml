@@ -15,3 +15,6 @@ kbs-types = { git = "https://github.com/virtee/kbs-types", default-features = fa
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false }
 
+[dev-dependencies]
+env_logger = "0.10.0"
+
