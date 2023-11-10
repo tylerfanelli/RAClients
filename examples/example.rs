@@ -1,12 +1,25 @@
 extern crate reference_kbs_client;
 
+use std::env;
+
+use kbs_types::Tee;
 use reference_kbs_client::client_session::ClientSession;
 
 fn main() {
     env_logger::init();
 
-    println!("Example started");
-    let cs = ClientSession::new("0".to_string());
-    let id = cs.id();
-    println!("Created new client sessions with ID {id}");
+    let url = env::args().nth(1).unwrap_or("http://127.0.0.1:8000".into());
+
+    println!("Connecting to KBS at {url}");
+    let cs = ClientSession::new(Tee::Snp, "sno-workloaid".to_string());
+    let id = cs.session_id();
+    println!("Created new client sessions with ID {id:?}");
+
+    let request = cs.request().unwrap();
+
+    let client = reqwest::blocking::Client::new();
+    let resp = client.post(url + "/kbs/v0/auth").json(&request).send();
+    println!("{:#?}", resp);
+
+    println!("Response: {:#?}", resp.unwrap().text());
 }

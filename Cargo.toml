@@ -11,10 +11,11 @@ std = [ "kbs-types/std", "serde/std", "serde_json/std" ]
 
 [dependencies]
 #kbs-types = { version = "0.5.0", default-features = false }
-kbs-types = { git = "https://github.com/virtee/kbs-types", default-features = false }
+kbs-types = { git = "https://github.com/virtee/kbs-types", default-features = false, features = ["tee-snp"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false }
 
 [dev-dependencies]
 env_logger = "0.10.0"
+reqwest = { version = "0.11.22", features = ["json", "blocking", "cookies"] }
 
