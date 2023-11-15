@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
-use kbs_types::{Attestation, Request, SnpRequest, Tee};
+use kbs_types::{Attestation, Challenge, Request, SnpRequest, Tee};
 use serde_json::{json, Value};
 
 use crate::{
@@ -10,10 +10,17 @@ use crate::{
     KBSClientError,
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub enum CSError {
     // Tee is not supported by this implementation
     TeeNotSupported,
+    JsonError(serde_json::Error),
+}
+
+impl From<serde_json::Error> for CSError {
+    fn from(e: serde_json::Error) -> Self {
+        Self::JsonError(e)
+    }
 }
 
 impl From<CSError> for KBSClientError {
@@ -26,6 +33,7 @@ pub struct ClientSession {
     tee: Tee,
     workload_id: String,
     session_id: Option<String>,
+    nonce: Option<String>,
 }
 
 impl ClientSession {
@@ -34,6 +42,7 @@ impl ClientSession {
             tee,
             workload_id,
             session_id: None,
+            nonce: None,
         }
     }
 
@@ -41,8 +50,12 @@ impl ClientSession {
         self.session_id = Some(str);
     }
 
-    pub fn session_id(&self) -> Option<String> {
-        self.session_id.clone()
+    pub fn session_id(&self) -> &Option<String> {
+        &self.session_id
+    }
+
+    pub fn nonce(&self) -> &Option<String> {
+        &self.nonce
     }
 
     pub fn request(&self) -> Result<Value, CSError> {
@@ -61,6 +74,14 @@ impl ClientSession {
 
         Ok(json!(request))
     }
+
+    pub fn challenge(&mut self, data: Value) -> Result<(), CSError> {
+        let challenge: Challenge = serde_json::from_value(data)?;
+
+        self.nonce = Some(challenge.nonce);
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -71,10 +92,10 @@ mod tests {
     #[test]
     fn test() {
         let mut cs = ClientSession::new(Tee::Snp, "snp-workload".to_string());
-        assert_eq!(cs.session_id(), None);
+        assert_eq!(*cs.session_id(), None);
 
         cs.set_session_id("42".to_string());
-        assert_eq!(cs.session_id(), Some("42".to_string()));
+        assert_eq!(*cs.session_id(), Some("42".to_string()));
 
         let request = cs.request().unwrap();
         assert_eq!(
@@ -85,5 +106,14 @@ mod tests {
                 "extra-params": json!({"workload_id":"snp-workload"}).to_string(),
             }),
         );
+
+        let challenge = r#"
+        {
+            "nonce": "424242",
+            "extra-params": ""
+        }"#;
+        cs.challenge(serde_json::from_str(challenge).unwrap())
+            .unwrap();
+        assert_eq!(*cs.nonce(), Some("424242".to_string()));
     }
 }

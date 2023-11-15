@@ -24,7 +24,7 @@ mod lib {
 
 pub mod client_session;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub enum KBSClientError {
     // Errors related to client_session
     CS(client_session::CSError),
