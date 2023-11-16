@@ -1,7 +1,3 @@
-// TODO: remove
-#![allow(dead_code)]
-#![allow(unused_imports)]
-
 use kbs_types::{Attestation, Challenge, Request, SnpAttestation, SnpRequest, Tee, TeePubKey};
 use num_bigint::BigUint;
 use serde_json::{json, Value};
@@ -129,9 +125,9 @@ impl ClientSession {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::lib::*;
     use core::str::FromStr;
+
+    use super::*;
 
     #[test]
     fn test() {
