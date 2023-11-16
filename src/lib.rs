@@ -24,10 +24,13 @@ mod lib {
     pub use self::core::fmt::{self, Debug, Display};
 }
 
+pub mod client_registration;
 pub mod client_session;
 
 #[derive(Debug)]
 pub enum KBSClientError {
     // Errors related to client_session
     CS(client_session::CSError),
+    // Errors related to client_registration
+    CR(client_registration::CRError),
 }
