@@ -12,6 +12,7 @@ pub enum CSError {
     // Tee is not supported by this implementation
     TeeNotSupported,
     JsonError(serde_json::Error),
+    HexError(hex::FromHexError),
 }
 
 pub enum SnpGeneration {
@@ -31,6 +32,12 @@ impl fmt::Display for SnpGeneration {
 impl From<serde_json::Error> for CSError {
     fn from(e: serde_json::Error) -> Self {
         Self::JsonError(e)
+    }
+}
+
+impl From<hex::FromHexError> for CSError {
+    fn from(e: hex::FromHexError) -> Self {
+        Self::HexError(e)
     }
 }
 
@@ -121,6 +128,15 @@ impl ClientSession {
 
         Ok(json!(attestation))
     }
+
+    // confidential-containers/kbs provides `Response` payloads, but
+    // reference-kbs SNP attested just return a JSON String.
+    pub fn secret(&self, data: Value) -> Result<Vec<u8>, CSError> {
+        let secret: String = serde_json::from_value(data)?;
+
+        // TODO: consider using decode_to_slice() to avoid heap allocation
+        Ok(hex::decode(secret)?)
+    }
 }
 
 #[cfg(test)]
@@ -182,5 +198,10 @@ mod tests {
                 }).to_string(),
             }),
         );
+
+        let remote_secret = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let data = json!(hex::encode(remote_secret));
+        let secret = cs.secret(data).unwrap();
+        assert_eq!(secret, remote_secret);
     }
 }
