@@ -20,6 +20,8 @@ mod lib {
     pub use alloc::string::{String, ToString};
     #[cfg(feature = "std")]
     pub use std::string::{String, ToString};
+
+    pub use self::core::fmt::{self, Debug, Display};
 }
 
 pub mod client_session;
