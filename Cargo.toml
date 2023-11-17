@@ -1,5 +1,5 @@
 [package]
-name = "reference-kbs-client"
+name = "reference-kbc"
 version = "0.1.0"
 edition = "2021"
 authors = ["Stefano Garzarella <sgarzare@redhat.com>"]

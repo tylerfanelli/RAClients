@@ -1,9 +1,9 @@
-extern crate reference_kbs_client;
+extern crate reference_kbc;
 
 use std::env;
 
 use kbs_types::Tee;
-use reference_kbs_client::client_session::ClientSession;
+use reference_kbc::client_session::ClientSession;
 
 fn main() {
     env_logger::init();
