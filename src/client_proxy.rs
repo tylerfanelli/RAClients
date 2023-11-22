@@ -132,8 +132,9 @@ impl Read for Proxy {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_json::json;
+
+    use super::*;
 
     struct Buffer {
         vec: Vec<u8>,

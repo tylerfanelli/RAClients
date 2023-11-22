@@ -16,23 +16,26 @@ mod lib {
         pub use std::*;
     }
 
+    // alloc modules used when we don't have the standard library
     #[cfg(all(feature = "alloc", not(feature = "std")))]
     pub use alloc::string::{String, ToString};
-    #[cfg(feature = "std")]
-    pub use std::string::{String, ToString};
-
+    #[cfg(all(feature = "alloc", not(feature = "std")))]
+    pub use alloc::vec;
     #[cfg(all(feature = "alloc", not(feature = "std")))]
     pub use alloc::vec::Vec;
+    // std modules used when we have the standard library
+    #[cfg(feature = "std")]
+    pub use std::string::{String, ToString};
+    #[cfg(feature = "std")]
+    pub use std::vec;
     #[cfg(feature = "std")]
     pub use std::vec::Vec;
 
-    #[cfg(all(feature = "alloc", not(feature = "std")))]
-    pub use alloc::vec;
-    #[cfg(feature = "std")]
-    pub use std::vec;
-
-    pub use self::core::fmt::{self, Debug, Display};
-    pub use self::core::num::TryFromIntError;
+    // core modules (re-exported by `std` when have the standard library)
+    pub use self::core::{
+        fmt::{self, Debug, Display},
+        num::TryFromIntError,
+    };
 }
 
 pub mod client_proxy;

@@ -49,7 +49,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() {
+    fn test_registration() {
         let cr = ClientRegistration::new("snp-workload".to_string());
 
         let registration = cr

@@ -162,7 +162,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() {
+    fn test_session() {
         let mut snp = ClientTeeSnp::new(SnpGeneration::Milan, "snp-workload".to_string());
 
         let mut cs = ClientSession::new();
