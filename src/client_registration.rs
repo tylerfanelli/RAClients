@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::{
-    lib::{String, ToString},
+    lib::{Debug, String, ToString},
     KBCError,
 };
 

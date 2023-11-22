@@ -3,7 +3,7 @@ use num_bigint::BigUint;
 use serde_json::{json, Value};
 
 use crate::{
-    lib::{fmt, String, ToString, Vec},
+    lib::{fmt, Debug, Display, String, ToString, Vec},
     KBCError,
 };
 
@@ -112,7 +112,7 @@ pub enum SnpGeneration {
     Genoa,
 }
 
-impl fmt::Display for SnpGeneration {
+impl Display for SnpGeneration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             SnpGeneration::Milan => write!(f, "milan"),

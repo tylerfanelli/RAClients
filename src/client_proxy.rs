@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    lib::{vec, String, TryFromIntError},
+    lib::{vec, Debug, String, TryFromIntError},
     KBCError,
 };
 
@@ -161,7 +161,7 @@ mod tests {
         fn read(&mut self, buf: &mut [u8]) -> Result<usize, CPError> {
             let len = std::cmp::min(buf.len(), self.vec.len());
             let data = self.vec.drain(0..len);
-            buf[..].clone_from_slice(&data.as_slice());
+            buf[..].clone_from_slice(data.as_slice());
             Ok(len)
         }
     }
