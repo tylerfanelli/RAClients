@@ -33,7 +33,7 @@ pub mod client_registration;
 pub mod client_session;
 
 #[derive(Debug)]
-pub enum KBSClientError {
+pub enum KBCError {
     // Errors related to client_session
     CS(client_session::CSError),
     // Errors related to client_registration

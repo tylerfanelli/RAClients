@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 
 use crate::{
     lib::{fmt, String, ToString, Vec},
-    KBSClientError,
+    KBCError,
 };
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ impl From<hex::FromHexError> for CSError {
     }
 }
 
-impl From<CSError> for KBSClientError {
+impl From<CSError> for KBCError {
     fn from(e: CSError) -> Self {
         Self::CS(e)
     }

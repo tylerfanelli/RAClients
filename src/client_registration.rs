@@ -3,13 +3,13 @@ use serde_json::{json, Value};
 
 use crate::{
     lib::{String, ToString},
-    KBSClientError,
+    KBCError,
 };
 
 #[derive(Debug)]
 pub enum CRError {}
 
-impl From<CRError> for KBSClientError {
+impl From<CRError> for KBCError {
     fn from(e: CRError) -> Self {
         Self::CR(e)
     }
