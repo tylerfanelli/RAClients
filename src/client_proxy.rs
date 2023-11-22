@@ -54,7 +54,7 @@ pub enum HttpMethod {
 pub struct Request {
     pub endpoint: String,
     pub method: HttpMethod,
-    pub body: String,
+    pub body: Value,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
@@ -176,7 +176,7 @@ mod tests {
         let req = Request {
             endpoint: "/test".to_string(),
             method: HttpMethod::GET,
-            body: "body".to_string(),
+            body: json!("body".to_string()),
         };
 
         proxy.write_json(&json!(req)).unwrap();
