@@ -26,9 +26,16 @@ mod lib {
     #[cfg(feature = "std")]
     pub use std::vec::Vec;
 
+    #[cfg(all(feature = "alloc", not(feature = "std")))]
+    pub use alloc::vec;
+    #[cfg(feature = "std")]
+    pub use std::vec;
+
     pub use self::core::fmt::{self, Debug, Display};
+    pub use self::core::num::TryFromIntError;
 }
 
+pub mod client_proxy;
 pub mod client_registration;
 pub mod client_session;
 
@@ -38,4 +45,6 @@ pub enum KBCError {
     CS(client_session::CSError),
     // Errors related to client_registration
     CR(client_registration::CRError),
+    // Errors related to client_proxy
+    CP(client_proxy::CPError),
 }
