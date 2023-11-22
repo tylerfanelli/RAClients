@@ -3,7 +3,7 @@ use num_bigint::BigUint;
 use serde_json::{json, Value};
 
 use crate::{
-    lib::{fmt, String, ToString},
+    lib::{fmt, String, ToString, Vec},
     KBSClientError,
 };
 
