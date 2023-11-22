@@ -59,12 +59,11 @@ fn main() {
     let mut cs = ClientSession::new();
 
     let request = cs.request(&snp).unwrap();
-    let resp = client
-        .post(url.clone() + "/kbs/v0/auth")
-        .json(&request)
-        .send()
-        .unwrap();
-    debug!("auth - resp: {:#?}", resp);
+    let req = client.post(url.clone() + "/kbs/v0/auth").json(&request);
+    debug!("auth - {:#?}", req);
+
+    let resp = req.send().unwrap();
+    debug!("auth - {:#?}", resp);
 
     let challenge = if resp.status().is_success() {
         let challenge = resp.text().unwrap();
@@ -102,12 +101,13 @@ fn main() {
 
     let attestation = cs.attestation(pub_key.n(), pub_key.e(), &snp).unwrap();
 
-    let resp = client
+    let req = client
         .post(url.clone() + "/kbs/v0/attest")
-        .json(&attestation)
-        .send()
-        .unwrap();
-    debug!("attest - resp{:#?}", resp);
+        .json(&attestation);
+    debug!("attest - {:#?}", req);
+
+    let resp = req.send().unwrap();
+    debug!("attest - {:#?}", resp);
 
     if resp.status().is_success() {
         info!("Attestation success - {}", resp.text().unwrap())
