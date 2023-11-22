@@ -63,6 +63,12 @@ pub struct Response {
     pub body: String,
 }
 
+impl Response {
+    pub fn is_success(&self) -> bool {
+        self.status >= 200 && self.status <= 299
+    }
+}
+
 pub struct Proxy {
     conn: *mut (dyn Connection),
 }
