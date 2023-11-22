@@ -80,13 +80,14 @@ fn main() {
     };
 
     debug!("Challenge: {:#?}", challenge);
-    cs.challenge(serde_json::from_str(&challenge).unwrap())
+    let nonce = cs
+        .challenge(serde_json::from_str(&challenge).unwrap())
         .unwrap();
 
-    info!("Nonce: {}", cs.nonce().clone().unwrap());
+    info!("Nonce: {}", nonce);
 
     let mut hasher = Sha512::new();
-    hasher.update(cs.nonce().clone().unwrap().as_bytes());
+    hasher.update(nonce.as_bytes());
     hasher.update(pub_key.n().to_string().as_bytes());
     hasher.update(pub_key.e().to_string().as_bytes());
 

@@ -39,7 +39,6 @@ pub trait ClientTee {
 
 pub struct ClientSession {
     session_id: Option<String>,
-    nonce: Option<String>,
 }
 
 impl Default for ClientSession {
@@ -50,10 +49,7 @@ impl Default for ClientSession {
 
 impl ClientSession {
     pub fn new() -> Self {
-        ClientSession {
-            session_id: None,
-            nonce: None,
-        }
+        ClientSession { session_id: None }
     }
 
     pub fn set_session_id(&mut self, str: String) {
@@ -62,10 +58,6 @@ impl ClientSession {
 
     pub fn session_id(&self) -> &Option<String> {
         &self.session_id
-    }
-
-    pub fn nonce(&self) -> &Option<String> {
-        &self.nonce
     }
 
     pub fn request(&self, tee: &dyn ClientTee) -> Result<Value, CSError> {
@@ -78,12 +70,10 @@ impl ClientSession {
         Ok(json!(request))
     }
 
-    pub fn challenge(&mut self, data: Value) -> Result<(), CSError> {
+    pub fn challenge(&mut self, data: Value) -> Result<String, CSError> {
         let challenge: Challenge = serde_json::from_value(data)?;
 
-        self.nonce = Some(challenge.nonce);
-
-        Ok(())
+        Ok(challenge.nonce)
     }
 
     pub fn attestation(
@@ -196,9 +186,10 @@ mod tests {
             "nonce": "424242",
             "extra-params": ""
         }"#;
-        cs.challenge(serde_json::from_str(challenge).unwrap())
+        let nonce = cs
+            .challenge(serde_json::from_str(challenge).unwrap())
             .unwrap();
-        assert_eq!(*cs.nonce(), Some("424242".to_string()));
+        assert_eq!(nonce, "424242".to_string());
 
         let report = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
         snp.update_report(&report);
