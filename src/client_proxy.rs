@@ -10,6 +10,7 @@ use crate::{
 pub enum CPError {
     JsonError(serde_json::Error),
     NumError(TryFromIntError),
+    FlushError,
     ReadError,
     ReadPayloadTooShort,
     WriteError,
