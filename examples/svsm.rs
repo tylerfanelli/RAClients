@@ -1,17 +1,10 @@
 extern crate reference_kbc;
 
-use std::{
-    env,
-    io::{Read as IoRead, Write as IoWrite},
-    os::unix::net::UnixStream,
-    thread,
-};
+use std::{env, os::unix::net::UnixStream, thread};
 
 use log::{debug, error, info};
 use reference_kbc::{
-    client_proxy::{
-        Connection, Error as CPError, HttpMethod, Proxy, Read, Request, Response, Write,
-    },
+    client_proxy::{unix::UnixConnection, Error as CPError, HttpMethod, Proxy, Request, Response},
     client_registration::ClientRegistration,
     client_session::{ClientSession, ClientTeeSnp, SnpGeneration},
 };
@@ -19,28 +12,6 @@ use rsa::{traits::PublicKeyParts, RsaPrivateKey, RsaPublicKey};
 use serde_json::json;
 use sev::firmware::guest::AttestationReport;
 use sha2::{Digest, Sha512};
-
-struct UnixConnection(UnixStream);
-
-impl Write for UnixConnection {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, CPError> {
-        self.0.write_all(buf).map_err(|_| CPError::WriteError)?;
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> Result<(), CPError> {
-        self.0.flush().map_err(|_| CPError::FlushError)
-    }
-}
-
-impl Read for UnixConnection {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, CPError> {
-        self.0.read_exact(buf).map_err(|_| CPError::ReadError)?;
-        Ok(buf.len())
-    }
-}
-
-impl Connection for UnixConnection {}
 
 fn svsm(socket: UnixStream, workload_id: String, mut attestation: AttestationReport) {
     let mut proxy = Proxy::new(Box::new(UnixConnection(socket)));
@@ -156,7 +127,14 @@ fn main() {
     loop {
         let data = match proxy.read_json() {
             Ok(data) => data,
-            Err(_) => break,
+            Err(CPError::Eof) => {
+                info!("Client disconnected!");
+                break;
+            }
+            Err(e) => {
+                error!("{e}");
+                break;
+            }
         };
         let req: Request = serde_json::from_value(data).unwrap();
 
@@ -174,7 +152,8 @@ fn main() {
             status: http_resp.status().as_u16(),
             body: http_resp.text().unwrap_or(String::new()),
         };
-        if proxy.write_json(&json!(resp)).is_err() {
+        if let Err(e) = proxy.write_json(&json!(resp)) {
+            error!("{e}");
             break;
         }
     }

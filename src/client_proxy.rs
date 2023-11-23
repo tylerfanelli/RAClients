@@ -7,11 +7,12 @@ use crate::lib::{fmt, vec, Box, Debug, String, TryFromIntError};
 pub enum Error {
     JsonError(serde_json::Error),
     NumError(TryFromIntError),
-    FlushError,
-    ReadError,
-    WriteError,
+    FlushError(anyhow::Error),
+    ReadError(anyhow::Error),
+    WriteError(anyhow::Error),
     WriteZero,
     UnexpectedEof,
+    Eof,
 }
 
 #[cfg(feature = "std")]
@@ -22,14 +23,15 @@ impl fmt::Display for Error {
         match self {
             Self::JsonError(je) => write!(f, "Malformed JSON - {je}"),
             Self::NumError(ne) => write!(f, "Integer converions failed - {ne}"),
-            Self::FlushError => write!(f, "Flush failed"),
-            Self::ReadError => write!(f, "Read failed"),
-            Self::WriteError => write!(f, "Write failed"),
+            Self::FlushError(e) => write!(f, "Flush failed - {e}"),
+            Self::ReadError(e) => write!(f, "Read failed - {e}"),
+            Self::WriteError(e) => write!(f, "Write failed - {e}"),
             Self::WriteZero => write!(
                 f,
                 "Failed while writing the entire buffer - write() returned Ok(0)"
             ),
             Self::UnexpectedEof => write!(f, "Unexpected EOF while filling the buffer"),
+            Self::Eof => write!(f, "Reached end of file"),
         }
     }
 }
@@ -73,18 +75,24 @@ pub trait Read {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error>;
 
     fn read_exact(&mut self, mut buf: &mut [u8]) -> Result<(), Error> {
+        let mut read = 0;
         while !buf.is_empty() {
             match self.read(buf) {
                 Ok(0) => break,
                 Ok(n) => {
                     let tmp = buf;
                     buf = &mut tmp[n..];
+                    read += n;
                 }
                 Err(e) => return Err(e),
             }
         }
         if !buf.is_empty() {
-            Err(Error::UnexpectedEof)
+            if read == 0 {
+                Err(Error::Eof)
+            } else {
+                Err(Error::UnexpectedEof)
+            }
         } else {
             Ok(())
         }
@@ -92,6 +100,35 @@ pub trait Read {
 }
 
 pub trait Connection: Write + Read {}
+
+#[cfg(feature = "std")]
+pub mod unix {
+    use std::io::{Read as IoRead, Write as IoWrite};
+
+    use anyhow::anyhow;
+
+    use super::{Connection, Error, Read, Write};
+
+    pub struct UnixConnection(pub std::os::unix::net::UnixStream);
+
+    impl Write for UnixConnection {
+        fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
+            self.0.write(buf).map_err(|e| Error::WriteError(anyhow!(e)))
+        }
+
+        fn flush(&mut self) -> Result<(), Error> {
+            self.0.flush().map_err(|e| Error::FlushError(anyhow!(e)))
+        }
+    }
+
+    impl Read for UnixConnection {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+            self.0.read(buf).map_err(|e| Error::ReadError(anyhow!(e)))
+        }
+    }
+
+    impl Connection for UnixConnection {}
+}
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub enum HttpMethod {
