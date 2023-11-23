@@ -41,8 +41,7 @@ impl Read for UnixConnection {
 impl Connection for UnixConnection {}
 
 fn svsm(socket: UnixStream, workload_id: String, mut attestation: AttestationReport) {
-    let mut conn = UnixConnection(socket);
-    let mut proxy = Proxy::new(&mut conn);
+    let mut proxy = Proxy::new(Box::new(UnixConnection(socket)));
 
     let mut rng = rand::thread_rng();
     let bits = 2048;
@@ -152,8 +151,7 @@ fn main() {
     let (socket, remote_socket) = UnixStream::pair().unwrap();
     let svsm = thread::spawn(move || svsm(remote_socket, workload_id, attestation));
 
-    let mut conn = UnixConnection(socket);
-    let mut proxy = Proxy::new(&mut conn);
+    let mut proxy = Proxy::new(Box::new(UnixConnection(socket)));
 
     loop {
         let data = match proxy.read_json() {

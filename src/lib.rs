@@ -18,12 +18,16 @@ mod lib {
 
     // alloc modules used when we don't have the standard library
     #[cfg(all(feature = "alloc", not(feature = "std")))]
+    pub use alloc::boxed::Box;
+    #[cfg(all(feature = "alloc", not(feature = "std")))]
     pub use alloc::string::{String, ToString};
     #[cfg(all(feature = "alloc", not(feature = "std")))]
     pub use alloc::vec;
     #[cfg(all(feature = "alloc", not(feature = "std")))]
     pub use alloc::vec::Vec;
     // std modules used when we have the standard library
+    #[cfg(feature = "std")]
+    pub use std::boxed::Box;
     #[cfg(feature = "std")]
     pub use std::string::{String, ToString};
     #[cfg(feature = "std")]

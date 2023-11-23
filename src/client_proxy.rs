@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    lib::{vec, Debug, String, TryFromIntError},
+    lib::{vec, Box, Debug, String, TryFromIntError},
     KBCError,
 };
 
@@ -70,11 +70,11 @@ impl Response {
 }
 
 pub struct Proxy {
-    conn: *mut (dyn Connection),
+    conn: Box<dyn Connection>,
 }
 
 impl Proxy {
-    pub fn new(conn: *mut dyn Connection) -> Self {
+    pub fn new(conn: Box<dyn Connection>) -> Self {
         Proxy { conn }
     }
 
@@ -123,17 +123,17 @@ impl Proxy {
 
 impl Write for Proxy {
     fn write(&mut self, buf: &[u8]) -> Result<usize, CPError> {
-        unsafe { (*self.conn).write(buf) }
+        self.conn.write(buf)
     }
 
     fn flush(&mut self) -> Result<(), CPError> {
-        unsafe { (*self.conn).flush() }
+        self.conn.flush()
     }
 }
 
 impl Read for Proxy {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, CPError> {
-        unsafe { (*self.conn).read(buf) }
+        self.conn.read(buf)
     }
 }
 
@@ -170,8 +170,8 @@ mod tests {
 
     #[test]
     fn test_proxy() {
-        let mut conn = Buffer { vec: Vec::new() };
-        let mut proxy = Proxy::new(&mut conn);
+        let conn = Buffer { vec: Vec::new() };
+        let mut proxy = Proxy::new(Box::new(conn));
 
         let req = Request {
             endpoint: "/test".to_string(),
