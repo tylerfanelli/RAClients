@@ -1,45 +1,56 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{
-    lib::{vec, Box, Debug, String, TryFromIntError},
-    KBCError,
-};
+use crate::lib::{fmt, vec, Box, Debug, String, TryFromIntError};
 
 #[derive(Debug)]
-pub enum CPError {
+pub enum Error {
     JsonError(serde_json::Error),
     NumError(TryFromIntError),
     FlushError,
     ReadError,
-    ReadPayloadTooShort,
     WriteError,
 }
 
-impl From<CPError> for KBCError {
-    fn from(e: CPError) -> Self {
+#[cfg(feature = "std")]
+impl std::error::Error for Error {}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::JsonError(je) => write!(f, "Malformed JSON - {je}"),
+            Self::NumError(ne) => write!(f, "Integer converions failed - {ne}"),
+            Self::FlushError => write!(f, "Flush failed"),
+            Self::ReadError => write!(f, "Read failed"),
+            Self::WriteError => write!(f, "Write failed"),
+        }
+    }
+}
+
+impl From<Error> for crate::Error {
+    fn from(e: Error) -> Self {
         Self::CP(e)
     }
 }
-impl From<serde_json::Error> for CPError {
+impl From<serde_json::Error> for Error {
     fn from(e: serde_json::Error) -> Self {
         Self::JsonError(e)
     }
 }
 
-impl From<TryFromIntError> for CPError {
+impl From<TryFromIntError> for Error {
     fn from(e: TryFromIntError) -> Self {
         Self::NumError(e)
     }
 }
 
 pub trait Write {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, CPError>;
-    fn flush(&mut self) -> Result<(), CPError>;
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Error>;
+    fn flush(&mut self) -> Result<(), Error>;
 }
 
 pub trait Read {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, CPError>;
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error>;
 }
 
 pub trait Connection: Write + Read {}
@@ -78,7 +89,7 @@ impl Proxy {
         Proxy { conn }
     }
 
-    pub fn write_json(&mut self, json: &Value) -> Result<(), CPError> {
+    pub fn write_json(&mut self, json: &Value) -> Result<(), Error> {
         let buf = serde_json::to_vec(json)?;
 
         let len: u32 = buf.len().try_into()?;
@@ -86,12 +97,12 @@ impl Proxy {
 
         let ret = self.write(&buf_len)?;
         if ret != buf_len.len() {
-            return Err(CPError::WriteError);
+            return Err(Error::WriteError);
         }
 
         let ret = self.write(&buf)?;
         if ret != buf.len() {
-            return Err(CPError::WriteError);
+            return Err(Error::WriteError);
         }
 
         self.flush()?;
@@ -99,12 +110,12 @@ impl Proxy {
         Ok(())
     }
 
-    pub fn read_json(&mut self) -> Result<Value, CPError> {
+    pub fn read_json(&mut self) -> Result<Value, Error> {
         let mut buf_len = [0u8; 4];
 
         let ret = self.read(&mut buf_len)?;
         if ret != buf_len.len() {
-            return Err(CPError::ReadError);
+            return Err(Error::ReadError);
         }
 
         let len: usize = u32::from_ne_bytes(buf_len).try_into()?;
@@ -112,7 +123,7 @@ impl Proxy {
 
         let ret = self.read(&mut buf)?;
         if ret != buf.len() {
-            return Err(CPError::ReadError);
+            return Err(Error::ReadError);
         }
 
         let json = serde_json::from_slice(&buf)?;
@@ -122,17 +133,17 @@ impl Proxy {
 }
 
 impl Write for Proxy {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, CPError> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
         self.conn.write(buf)
     }
 
-    fn flush(&mut self) -> Result<(), CPError> {
+    fn flush(&mut self) -> Result<(), Error> {
         self.conn.flush()
     }
 }
 
 impl Read for Proxy {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, CPError> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         self.conn.read(buf)
     }
 }
@@ -148,17 +159,17 @@ mod tests {
     }
 
     impl Write for Buffer {
-        fn write(&mut self, buf: &[u8]) -> Result<usize, CPError> {
+        fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
             self.vec.extend_from_slice(buf);
             Ok(buf.len())
         }
-        fn flush(&mut self) -> Result<(), CPError> {
+        fn flush(&mut self) -> Result<(), Error> {
             Ok(())
         }
     }
 
     impl Read for Buffer {
-        fn read(&mut self, buf: &mut [u8]) -> Result<usize, CPError> {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
             let len = std::cmp::min(buf.len(), self.vec.len());
             let data = self.vec.drain(0..len);
             buf[..].clone_from_slice(data.as_slice());

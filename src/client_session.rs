@@ -2,31 +2,40 @@ use kbs_types::{Attestation, Challenge, Request, SnpAttestation, SnpRequest, Tee
 use num_bigint::BigUint;
 use serde_json::{json, Value};
 
-use crate::{
-    lib::{fmt, Debug, Display, String, ToString, Vec},
-    KBCError,
-};
+use crate::lib::{fmt, Debug, Display, String, ToString, Vec};
 
 #[derive(Debug)]
-pub enum CSError {
+pub enum Error {
     JsonError(serde_json::Error),
     HexError(hex::FromHexError),
 }
 
-impl From<serde_json::Error> for CSError {
+#[cfg(feature = "std")]
+impl std::error::Error for Error {}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::JsonError(je) => write!(f, "Malformed JSON - {je}"),
+            Self::HexError(he) => write!(f, "Converion to hex failed - {he}"),
+        }
+    }
+}
+
+impl From<serde_json::Error> for Error {
     fn from(e: serde_json::Error) -> Self {
         Self::JsonError(e)
     }
 }
 
-impl From<hex::FromHexError> for CSError {
+impl From<hex::FromHexError> for Error {
     fn from(e: hex::FromHexError) -> Self {
         Self::HexError(e)
     }
 }
 
-impl From<CSError> for KBCError {
-    fn from(e: CSError) -> Self {
+impl From<Error> for crate::Error {
+    fn from(e: Error) -> Self {
         Self::CS(e)
     }
 }
@@ -60,7 +69,7 @@ impl ClientSession {
         &self.session_id
     }
 
-    pub fn request(&self, tee: &dyn ClientTee) -> Result<Value, CSError> {
+    pub fn request(&self, tee: &dyn ClientTee) -> Result<Value, Error> {
         let request = Request {
             version: "0.1.0".to_string(),
             tee: tee.tee(),
@@ -70,7 +79,7 @@ impl ClientSession {
         Ok(json!(request))
     }
 
-    pub fn challenge(&mut self, data: Value) -> Result<String, CSError> {
+    pub fn challenge(&mut self, data: Value) -> Result<String, Error> {
         let challenge: Challenge = serde_json::from_value(data)?;
 
         Ok(challenge.nonce)
@@ -81,7 +90,7 @@ impl ClientSession {
         k_mod: &BigUint,
         k_exp: &BigUint,
         tee: &dyn ClientTee,
-    ) -> Result<Value, CSError> {
+    ) -> Result<Value, Error> {
         let tee_pubkey = TeePubKey {
             kty: "RSA".to_string(),
             alg: "RSA".to_string(),
@@ -99,7 +108,7 @@ impl ClientSession {
 
     // confidential-containers/kbs provides `Response` payloads, but
     // reference-kbs SNP attested just return a JSON String.
-    pub fn secret(&self, data: Value) -> Result<Vec<u8>, CSError> {
+    pub fn secret(&self, data: Value) -> Result<Vec<u8>, Error> {
         let secret: String = serde_json::from_value(data)?;
 
         // TODO: consider using decode_to_slice() to avoid heap allocation

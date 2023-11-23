@@ -1,19 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::{
-    lib::{Debug, String, ToString},
-    KBCError,
-};
-
-#[derive(Debug)]
-pub enum CRError {}
-
-impl From<CRError> for KBCError {
-    fn from(e: CRError) -> Self {
-        Self::CR(e)
-    }
-}
+use crate::lib::{Debug, String, ToString};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct Workload {
@@ -32,7 +20,7 @@ impl ClientRegistration {
         ClientRegistration { workload_id }
     }
 
-    pub fn register(&self, measurement: &[u8], passphrase: String) -> Result<Value, CRError> {
+    pub fn register(&self, measurement: &[u8], passphrase: String) -> Value {
         let workload = Workload {
             workload_id: self.workload_id.clone(),
             launch_measurement: hex::encode(measurement),
@@ -40,7 +28,7 @@ impl ClientRegistration {
             passphrase,
         };
 
-        Ok(json!(workload))
+        json!(workload)
     }
 }
 
@@ -52,9 +40,7 @@ mod tests {
     fn test_registration() {
         let cr = ClientRegistration::new("snp-workload".to_string());
 
-        let registration = cr
-            .register(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "secret".to_string())
-            .unwrap();
+        let registration = cr.register(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "secret".to_string());
         assert_eq!(
             registration,
             json!({

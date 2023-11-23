@@ -9,7 +9,9 @@ use std::{
 
 use log::{debug, error, info};
 use reference_kbc::{
-    client_proxy::{CPError, Connection, HttpMethod, Proxy, Read, Request, Response, Write},
+    client_proxy::{
+        Connection, Error as CPError, HttpMethod, Proxy, Read, Request, Response, Write,
+    },
     client_registration::ClientRegistration,
     client_session::{ClientSession, ClientTeeSnp, SnpGeneration},
 };
@@ -127,9 +129,7 @@ fn main() {
     attestation.measurement[47] = 24;
 
     let cr = ClientRegistration::new(workload_id.clone());
-    let registration = cr
-        .register(&attestation.measurement, "secret passphrase".to_string())
-        .unwrap();
+    let registration = cr.register(&attestation.measurement, "secret passphrase".to_string());
 
     let resp = client
         .post(url_server.clone() + "/kbs/v0/register_workload")

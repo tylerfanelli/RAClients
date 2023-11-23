@@ -43,11 +43,21 @@ pub mod client_registration;
 pub mod client_session;
 
 #[derive(Debug)]
-pub enum KBCError {
+pub enum Error {
     // Errors related to client_session
-    CS(client_session::CSError),
-    // Errors related to client_registration
-    CR(client_registration::CRError),
+    CS(client_session::Error),
     // Errors related to client_proxy
-    CP(client_proxy::CPError),
+    CP(client_proxy::Error),
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for Error {}
+
+impl lib::fmt::Display for Error {
+    fn fmt(&self, f: &mut lib::fmt::Formatter<'_>) -> lib::fmt::Result {
+        match self {
+            Self::CS(e) => write!(f, "Session error: {e}"),
+            Self::CP(e) => write!(f, "Proxy error: {e}"),
+        }
+    }
 }
