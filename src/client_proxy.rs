@@ -10,6 +10,8 @@ pub enum Error {
     FlushError,
     ReadError,
     WriteError,
+    WriteZero,
+    UnexpectedEof,
 }
 
 #[cfg(feature = "std")]
@@ -23,6 +25,11 @@ impl fmt::Display for Error {
             Self::FlushError => write!(f, "Flush failed"),
             Self::ReadError => write!(f, "Read failed"),
             Self::WriteError => write!(f, "Write failed"),
+            Self::WriteZero => write!(
+                f,
+                "Failed while writing the entire buffer - write() returned Ok(0)"
+            ),
+            Self::UnexpectedEof => write!(f, "Unexpected EOF while filling the buffer"),
         }
     }
 }
@@ -47,10 +54,41 @@ impl From<TryFromIntError> for Error {
 pub trait Write {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error>;
     fn flush(&mut self) -> Result<(), Error>;
+
+    fn write_all(&mut self, mut buf: &[u8]) -> Result<(), Error> {
+        while !buf.is_empty() {
+            match self.write(buf) {
+                Ok(0) => {
+                    return Err(Error::WriteZero);
+                }
+                Ok(n) => buf = &buf[n..],
+                Err(e) => return Err(e),
+            }
+        }
+        Ok(())
+    }
 }
 
 pub trait Read {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error>;
+
+    fn read_exact(&mut self, mut buf: &mut [u8]) -> Result<(), Error> {
+        while !buf.is_empty() {
+            match self.read(buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    let tmp = buf;
+                    buf = &mut tmp[n..];
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        if !buf.is_empty() {
+            Err(Error::UnexpectedEof)
+        } else {
+            Ok(())
+        }
+    }
 }
 
 pub trait Connection: Write + Read {}
@@ -95,15 +133,8 @@ impl Proxy {
         let len: u32 = buf.len().try_into()?;
         let buf_len = u32::to_ne_bytes(len);
 
-        let ret = self.write(&buf_len)?;
-        if ret != buf_len.len() {
-            return Err(Error::WriteError);
-        }
-
-        let ret = self.write(&buf)?;
-        if ret != buf.len() {
-            return Err(Error::WriteError);
-        }
+        self.write_all(&buf_len)?;
+        self.write_all(&buf)?;
 
         self.flush()?;
 
@@ -113,18 +144,12 @@ impl Proxy {
     pub fn read_json(&mut self) -> Result<Value, Error> {
         let mut buf_len = [0u8; 4];
 
-        let ret = self.read(&mut buf_len)?;
-        if ret != buf_len.len() {
-            return Err(Error::ReadError);
-        }
+        self.read_exact(&mut buf_len)?;
 
         let len: usize = u32::from_ne_bytes(buf_len).try_into()?;
         let mut buf = vec![0u8; len];
 
-        let ret = self.read(&mut buf)?;
-        if ret != buf.len() {
-            return Err(Error::ReadError);
-        }
+        self.read_exact(&mut buf)?;
 
         let json = serde_json::from_slice(&buf)?;
 
