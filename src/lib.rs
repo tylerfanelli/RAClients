@@ -16,25 +16,21 @@ mod lib {
         pub use std::*;
     }
 
-    // alloc modules used when we don't have the standard library
-    #[cfg(all(feature = "alloc", not(feature = "std")))]
-    pub use alloc::boxed::Box;
-    #[cfg(all(feature = "alloc", not(feature = "std")))]
-    pub use alloc::string::{String, ToString};
-    #[cfg(all(feature = "alloc", not(feature = "std")))]
-    pub use alloc::vec;
-    #[cfg(all(feature = "alloc", not(feature = "std")))]
-    pub use alloc::vec::Vec;
-    // std modules used when we have the standard library
-    #[cfg(feature = "std")]
-    pub use std::boxed::Box;
-    #[cfg(feature = "std")]
-    pub use std::string::{String, ToString};
-    #[cfg(feature = "std")]
-    pub use std::vec;
-    #[cfg(feature = "std")]
-    pub use std::vec::Vec;
+    mod alloc {
+        #[cfg(feature = "std")]
+        pub use std::*;
 
+        #[cfg(all(feature = "alloc", not(feature = "std")))]
+        pub use ::alloc::*;
+    }
+
+    // alloc modules (re-exported by `std` when have the standard library)
+    pub use self::alloc::{
+        boxed::Box,
+        string::{String, ToString},
+        vec,
+        vec::Vec,
+    };
     // core modules (re-exported by `std` when have the standard library)
     pub use self::core::{
         fmt::{self, Debug, Display},
