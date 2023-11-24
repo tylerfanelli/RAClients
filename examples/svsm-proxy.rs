@@ -56,7 +56,7 @@ fn forward_request(http_client: &Client, url: &str, data: Value) -> anyhow::Resu
 fn start_proxy(stream: UnixStream, url: String) -> anyhow::Result<()> {
     let mut proxy = Proxy::new(Box::new(UnixConnection(stream)));
 
-    let http_client = ClientBuilder::new().cookie_store(true).build().unwrap();
+    let http_client = ClientBuilder::new().cookie_store(true).build()?;
 
     info!("Starting HTTP proxy for {url}");
 
