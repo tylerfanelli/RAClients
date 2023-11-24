@@ -32,6 +32,9 @@ struct ProxyArgs {
     /// Unix domain socket path to the SVSM serial port
     #[clap(long)]
     unix: String,
+    /// Force Unix domain socket removal before bind
+    #[clap(long, short, default_value_t = false)]
+    force: bool,
 }
 
 fn forward_request(http_client: &Client, url: &str, data: Value) -> anyhow::Result<Response> {
@@ -101,6 +104,11 @@ fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     let config = ProxyArgs::parse();
+
+    if config.force {
+        std::fs::remove_file(config.unix.clone())?;
+    }
+
     let listener = UnixListener::bind(config.unix).map_err(Error::UnixListen)?;
 
     // We will probably receive a 404 error, but let's try a GET just to raise
