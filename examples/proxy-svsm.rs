@@ -1,4 +1,5 @@
-use std::os::unix::net::UnixStream;
+use std::os::unix::net::{UnixListener, UnixStream};
+use std::thread;
 
 use clap::Parser;
 use log::{debug, error, info};
@@ -12,8 +13,8 @@ use thiserror::Error as ThisError;
 /// Custom error types
 #[derive(Debug, ThisError)]
 pub enum Error {
-    #[error("Connection to the Unix socket failed - {0}")]
-    UnixConnect(std::io::Error),
+    #[error("Creation of Unix socket failed - {0}")]
+    UnixListen(std::io::Error),
     #[error("Reading from the Unix socket failed - {0}")]
     ProxyRead(CPError),
     #[error("Communication with the HTTP server failed - {0}")]
@@ -52,20 +53,12 @@ fn forward_request(http_client: &Client, url: &str, data: Value) -> anyhow::Resu
     Ok(resp)
 }
 
-fn start_proxy(url: String, unix: String) -> anyhow::Result<()> {
-    let stream = UnixStream::connect(unix.clone()).map_err(Error::UnixConnect)?;
+fn start_proxy(stream: UnixStream, url: String) -> anyhow::Result<()> {
     let mut proxy = Proxy::new(Box::new(UnixConnection(stream)));
 
     let http_client = ClientBuilder::new().cookie_store(true).build().unwrap();
 
-    info!("Starting HTTP proxy from UDS:{unix} to {url}");
-
-    // We will probably receive a 404 error, but let's try a GET just to raise
-    // an error right away and get out if the server is already unreachable.
-    let _ = http_client
-        .get(url.clone())
-        .send()
-        .map_err(Error::HttpCommunication)?;
+    info!("Starting HTTP proxy for {url}");
 
     loop {
         let data = match proxy.read_json() {
@@ -96,12 +89,36 @@ fn start_proxy(url: String, unix: String) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn main() {
+fn handle_client(stream: UnixStream, url: String) {
+    if let Err(e) = start_proxy(stream, url) {
+        error!("{e}");
+    }
+}
+
+fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     let config = ProxyArgs::parse();
+    let listener = UnixListener::bind(config.unix).map_err(Error::UnixListen)?;
 
-    if let Err(e) = start_proxy(config.url, config.unix) {
-        error!("{e}");
+    // We will probably receive a 404 error, but let's try a GET just to raise
+    // an error right away and get out if the server is already unreachable.
+    let _ = Client::new()
+        .get(config.url.clone())
+        .send()
+        .map_err(Error::HttpCommunication)?;
+
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => {
+                let url = config.url.clone();
+                thread::spawn(|| handle_client(stream, url));
+            }
+            Err(e) => {
+                error!("{e}");
+            }
+        }
     }
+
+    Ok(())
 }
