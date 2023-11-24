@@ -1,5 +1,7 @@
-use std::os::unix::net::{UnixListener, UnixStream};
-use std::thread;
+use std::{
+    os::unix::net::{UnixListener, UnixStream},
+    thread,
+};
 
 use clap::Parser;
 use log::{debug, error, info};
