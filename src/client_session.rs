@@ -109,8 +109,8 @@ impl ClientSession {
 
     // confidential-containers/kbs provides `Response` payloads, but
     // reference-kbs SNP attested just return a JSON String.
-    pub fn secret(&self, data: Value) -> Result<Vec<u8>, Error> {
-        let secret: String = serde_json::from_value(data)?;
+    pub fn secret(&self, data: String) -> Result<Vec<u8>, Error> {
+        let secret: String = serde_json::from_str(&data)?;
 
         // TODO: consider using decode_to_slice() to avoid heap allocation
         Ok(hex::decode(secret)?)
@@ -236,7 +236,7 @@ mod tests {
 
         let remote_secret = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
         let data = json!(hex::encode(remote_secret));
-        let secret = cs.secret(data).unwrap();
+        let secret = cs.secret(data.to_string()).unwrap();
         assert_eq!(secret, remote_secret);
     }
 }
