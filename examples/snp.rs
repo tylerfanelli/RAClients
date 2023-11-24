@@ -83,10 +83,13 @@ fn main() {
 
     info!("Nonce: {}", nonce);
 
+    let key_n_encoded = ClientSession::encode_key(pub_key.n()).unwrap();
+    let key_e_encoded = ClientSession::encode_key(pub_key.e()).unwrap();
+
     let mut hasher = Sha512::new();
     hasher.update(nonce.as_bytes());
-    hasher.update(pub_key.n().to_string().as_bytes());
-    hasher.update(pub_key.e().to_string().as_bytes());
+    hasher.update(key_n_encoded.as_bytes());
+    hasher.update(key_e_encoded.as_bytes());
 
     attestation.report_data = hasher.finalize().into();
 
@@ -97,7 +100,7 @@ fn main() {
         )
     });
 
-    let attestation = cs.attestation(pub_key.n(), pub_key.e(), &snp).unwrap();
+    let attestation = cs.attestation(key_n_encoded, key_e_encoded, &snp).unwrap();
 
     let req = client
         .post(url.clone() + "/kbs/v0/attest")

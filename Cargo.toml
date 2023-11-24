@@ -6,11 +6,12 @@ authors = ["Stefano Garzarella <sgarzare@redhat.com>"]
 
 [features]
 default = [ "std" ]
-alloc = [ "hex/alloc", "kbs-types/alloc", "serde/alloc", "serde_json/alloc" ]
-std = [ "hex/std", "kbs-types/std", "serde/std", "serde_json/std" ]
+alloc = [ "base64ct/alloc", "hex/alloc", "kbs-types/alloc", "serde/alloc", "serde_json/alloc" ]
+std = [ "base64ct/std", "hex/std", "kbs-types/std", "serde/std", "serde_json/std" ]
 
 [dependencies]
 anyhow = { version = "1.0.75", default-features = false }
+base64ct = { version = "1.6.0", default-features = false }
 hex = { version = "0.4", default-features = false }
 #kbs-types = { version = "0.5.0", default-features = false }
 kbs-types = { git = "https://github.com/virtee/kbs-types", default-features = false, features = ["tee-snp"] }

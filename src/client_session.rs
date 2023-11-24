@@ -1,3 +1,4 @@
+use base64ct::{Base64, Encoding};
 use kbs_types::{Attestation, Challenge, Request, SnpAttestation, SnpRequest, Tee, TeePubKey};
 use num_bigint::BigUint;
 use serde_json::{json, Value};
@@ -87,15 +88,15 @@ impl ClientSession {
 
     pub fn attestation(
         &self,
-        k_mod: &BigUint,
-        k_exp: &BigUint,
+        k_mod: String,
+        k_exp: String,
         tee: &dyn ClientTee,
     ) -> Result<Value, Error> {
         let tee_pubkey = TeePubKey {
             kty: "RSA".to_string(),
             alg: "RSA".to_string(),
-            k_mod: k_mod.to_string(),
-            k_exp: k_exp.to_string(),
+            k_mod,
+            k_exp,
         };
 
         let attestation = Attestation {
@@ -113,6 +114,11 @@ impl ClientSession {
 
         // TODO: consider using decode_to_slice() to avoid heap allocation
         Ok(hex::decode(secret)?)
+    }
+
+    pub fn encode_key(key: &BigUint) -> Result<String, Error> {
+        let bytes = key.to_bytes_be();
+        Ok(Base64::encode_string(&bytes))
     }
 }
 
@@ -204,9 +210,12 @@ mod tests {
         snp.update_report(&report);
 
         let k_mod = BigUint::parse_bytes(b"98102316FFB6F426A242A619230E0F274AB9433DA04BB91B1A5792DDA8BC5DB86EE67F0F2E89A57716D1CF4469742BB1A9DD72BDA89CAA90CA7BF4D3D3DB1198BD61F12C7741ADC4426A88D1370412A936EC09340D3171B95AEAEDCE611C1E5F6C9E28EE212AE4C61F752978A596B153174DBF88D1125CA675AA7CFE23A8DD253546C68AEB2EE4A31D7FB66D9C7D665984C951158267A685E9C8D62BA7E62808D2B199926732C4BAF7C91A1630E5CB39CB96287032BA18D2642F743EDD09E0685657CF5063C095A9B05B2AAD214FBDE715644A9DE4C5C35C35BFE678F48A4083DA7D0D6C02604A3F0C9C03FD48E672F30D5B906BDE5958C9F4264A61B452211D", 16).unwrap();
+        let k_mod_encoded = ClientSession::encode_key(&k_mod).unwrap();
+        let k_exp = BigUint::from_str("12345").unwrap();
+        let k_exp_encoded = ClientSession::encode_key(&k_exp).unwrap();
 
         let attestation = cs
-            .attestation(&k_mod, &BigUint::from_str("12345").unwrap(), &snp)
+            .attestation(k_mod_encoded.clone(), k_exp_encoded.clone(), &snp)
             .unwrap();
         assert_eq!(
             attestation,
@@ -214,8 +223,8 @@ mod tests {
                 "tee-pubkey": json!({
                     "alg": "RSA",
                     "kty": "RSA",
-                    "n": k_mod.to_string(),
-                    "e": "12345",
+                    "n": k_mod_encoded,
+                    "e": k_exp_encoded,
                 }),
                 "tee-evidence": json!({
                     "cert_chain": "",
