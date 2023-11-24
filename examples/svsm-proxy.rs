@@ -24,12 +24,12 @@ pub enum Error {
 #[derive(Parser, Debug)]
 #[clap(version, about, long_about = None)]
 struct ProxyArgs {
-    /// Unix domain socket path to the SVSM serial port
-    #[clap(long)]
-    unix: String,
     /// HTTP url to KBS (e.g. http://server:4242)
     #[clap(long)]
     url: String,
+    /// Unix domain socket path to the SVSM serial port
+    #[clap(long)]
+    unix: String,
 }
 
 fn forward_request(http_client: &Client, url: &str, data: Value) -> anyhow::Result<Response> {
