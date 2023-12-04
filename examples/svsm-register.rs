@@ -34,8 +34,8 @@ fn main() -> anyhow::Result<()> {
 
     let config = ProxyArgs::parse();
 
-    let cr = ClientRegistration::new(config.workload.clone());
-    let registration = cr.register(&hex::decode(config.measurement)?, config.passphrase);
+    let cr = ClientRegistration::new(&hex::decode(config.measurement)?, config.passphrase);
+    let registration = cr.register();
 
     info!(
         "Registering workload {0} at {1}",

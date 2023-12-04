@@ -102,8 +102,8 @@ fn main() {
     attestation.measurement[0] = 42;
     attestation.measurement[47] = 24;
 
-    let cr = ClientRegistration::new(workload_id.clone());
-    let registration = cr.register(&attestation.measurement, "secret passphrase".to_string());
+    let cr = ClientRegistration::new(&attestation.measurement, "secret passphrase".to_string());
+    let registration = cr.register();
 
     let resp = client
         .post(url_server.clone() + "/kbs/v0/register_workload")

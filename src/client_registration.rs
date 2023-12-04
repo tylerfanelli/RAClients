@@ -1,34 +1,24 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::lib::{Debug, String, ToString};
+use crate::lib::{Debug, String};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct Workload {
-    workload_id: String,
-    launch_measurement: String,
-    tee_config: String,
-    passphrase: String,
-}
-
 pub struct ClientRegistration {
-    workload_id: String,
+    measurement: String,
+    secret: String,
 }
 
 impl ClientRegistration {
-    pub fn new(workload_id: String) -> Self {
-        ClientRegistration { workload_id }
+    pub fn new(measurement: &[u8], secret: String) -> Self {
+        Self {
+            measurement: hex::encode(measurement),
+            secret,
+        }
     }
 
-    pub fn register(&self, measurement: &[u8], passphrase: String) -> Value {
-        let workload = Workload {
-            workload_id: self.workload_id.clone(),
-            launch_measurement: hex::encode(measurement),
-            tee_config: "".to_string(),
-            passphrase,
-        };
-
-        json!(workload)
+    pub fn register(&self) -> Value {
+        json!(self)
     }
 }
 
@@ -38,16 +28,14 @@ mod tests {
 
     #[test]
     fn test_registration() {
-        let cr = ClientRegistration::new("snp-workload".to_string());
+        let cr = ClientRegistration::new(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "secret".to_string());
 
-        let registration = cr.register(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "secret".to_string());
+        let registration = cr.register();
         assert_eq!(
             registration,
             json!({
-                "workload_id": "snp-workload",
-                "launch_measurement": "00010203040506070809",
-                "tee_config": "",
-                "passphrase": "secret",
+                "measurement": "00010203040506070809",
+                "secret": "secret",
             }),
         );
     }
