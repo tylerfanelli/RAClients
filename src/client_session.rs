@@ -141,7 +141,7 @@ pub struct ClientTeeSnp {
 }
 
 impl ClientTeeSnp {
-    pub fn new(gen: SnpGeneration, workload_id: String) -> Self {
+    pub fn new(gen: SnpGeneration) -> Self {
         ClientTeeSnp {
             attestation: SnpAttestation {
                 report: "".to_string(),
@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn test_session() {
-        let mut snp = ClientTeeSnp::new(SnpGeneration::Milan, "snp-workload".to_string());
+        let mut snp = ClientTeeSnp::new(SnpGeneration::Milan);
 
         let mut cs = ClientSession::new();
         assert_eq!(*cs.session_id(), None);
@@ -191,7 +191,7 @@ mod tests {
             json!({
                 "version": "0.1.0",
                 "tee": "snp",
-                "extra-params": json!({"workload_id":"snp-workload"}).to_string(),
+                "extra-params": json!("").to_string(),
             }),
         );
 
