@@ -14,7 +14,7 @@ anyhow = { version = "1.0.75", default-features = false }
 base64ct = { version = "1.6.0", default-features = false }
 hex = { version = "0.4", default-features = false }
 #kbs-types = { version = "0.5.0", default-features = false }
-kbs-types = { git = "https://github.com/virtee/kbs-types", rev = "5a9b4df73e7", default-features = false, features = ["tee-snp"] }
+kbs-types = { git = "https://github.com/tylerfanelli/kbs-types", branch = "snp_mods", default-features = false, features = ["tee-snp"] }
 num-bigint = { version = "0.8", default-features = false, package = "num-bigint-dig" }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false }

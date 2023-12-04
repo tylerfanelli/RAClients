@@ -1,5 +1,5 @@
 use base64ct::{Base64, Encoding};
-use kbs_types::{Attestation, Challenge, Request, SnpAttestation, SnpRequest, Tee, TeePubKey};
+use kbs_types::{Attestation, Challenge, Request, SnpAttestation, Tee, TeePubKey};
 use num_bigint::BigUint;
 use serde_json::{json, Value};
 
@@ -137,17 +137,14 @@ impl Display for SnpGeneration {
 }
 
 pub struct ClientTeeSnp {
-    request: SnpRequest,
     attestation: SnpAttestation,
 }
 
 impl ClientTeeSnp {
     pub fn new(gen: SnpGeneration, workload_id: String) -> Self {
         ClientTeeSnp {
-            request: SnpRequest { workload_id },
             attestation: SnpAttestation {
                 report: "".to_string(),
-                cert_chain: "".to_string(),
                 gen: gen.to_string(),
             },
         }
@@ -162,9 +159,11 @@ impl ClientTee for ClientTeeSnp {
     fn tee(&self) -> Tee {
         Tee::Snp
     }
+
     fn extra_params(&self) -> Value {
-        json!(self.request)
+        json!("")
     }
+
     fn evidence(&self) -> Value {
         json!(self.attestation)
     }
