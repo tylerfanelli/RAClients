@@ -226,7 +226,6 @@ mod tests {
                     "e": k_exp_encoded,
                 }),
                 "tee-evidence": json!({
-                    "cert_chain": "",
                     "gen": "milan",
                     "report": hex::encode(report),
                 }).to_string(),
