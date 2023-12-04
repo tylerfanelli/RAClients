@@ -27,7 +27,6 @@ fn main() {
 
     info!("Connecting to KBS at {url}");
 
-    let workload_id = "snp-workload".to_string();
     let mut attestation = AttestationReport::default();
     attestation.measurement[0] = 42;
     attestation.measurement[47] = 24;
@@ -52,7 +51,7 @@ fn main() {
         )
     }
 
-    let mut snp = ClientTeeSnp::new(SnpGeneration::Milan, workload_id.clone());
+    let mut snp = ClientTeeSnp::new(SnpGeneration::Milan);
 
     let mut cs = ClientSession::new();
 

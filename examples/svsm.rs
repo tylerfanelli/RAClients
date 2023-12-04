@@ -13,7 +13,7 @@ use serde_json::json;
 use sev::firmware::guest::AttestationReport;
 use sha2::{Digest, Sha512};
 
-fn svsm(socket: UnixStream, workload_id: String, mut attestation: AttestationReport) {
+fn svsm(socket: UnixStream, mut attestation: AttestationReport) {
     let mut proxy = Proxy::new(Box::new(UnixConnection(socket)));
 
     let mut rng = rand::thread_rng();
@@ -21,7 +21,7 @@ fn svsm(socket: UnixStream, workload_id: String, mut attestation: AttestationRep
     let priv_key = RsaPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
     let pub_key = RsaPublicKey::from(&priv_key);
 
-    let mut snp = ClientTeeSnp::new(SnpGeneration::Milan, workload_id);
+    let mut snp = ClientTeeSnp::new(SnpGeneration::Milan);
     let mut cs = ClientSession::new();
 
     let request = cs.request(&snp).unwrap();
@@ -88,8 +88,6 @@ fn svsm(socket: UnixStream, workload_id: String, mut attestation: AttestationRep
 fn main() {
     env_logger::init();
 
-    let workload_id = "snp-workload".to_string();
-
     let url_server = env::args().nth(1).unwrap_or("http://127.0.0.1:8000".into());
     let client = reqwest::blocking::ClientBuilder::new()
         .cookie_store(true)
@@ -123,7 +121,7 @@ fn main() {
     }
 
     let (socket, remote_socket) = UnixStream::pair().unwrap();
-    let svsm = thread::spawn(move || svsm(remote_socket, workload_id, attestation));
+    let svsm = thread::spawn(move || svsm(remote_socket, attestation));
 
     let mut proxy = Proxy::new(Box::new(UnixConnection(socket)));
 
