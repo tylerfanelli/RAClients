@@ -1,5 +1,7 @@
 use base64ct::{Base64, Encoding};
-use kbs_types::{Attestation, Challenge, Request, SnpAttestation, Tee, TeePubKey};
+use kbs_types::{
+    Attestation, Challenge, Request, Response as KbsResponse, SnpAttestation, Tee, TeePubKey,
+};
 use num_bigint::BigUint;
 use serde_json::{json, Value};
 
@@ -107,13 +109,11 @@ impl ClientSession {
         Ok(json!(attestation))
     }
 
-    // confidential-containers/kbs provides `Response` payloads, but
-    // reference-kbs SNP attested just return a JSON String.
     pub fn secret(&self, data: String) -> Result<Vec<u8>, Error> {
-        let secret: String = serde_json::from_str(&data)?;
+        let resp: KbsResponse = serde_json::from_str(&data)?;
 
         // TODO: consider using decode_to_slice() to avoid heap allocation
-        Ok(hex::decode(secret)?)
+        Ok(hex::decode(resp.ciphertext)?)
     }
 
     pub fn encode_key(key: &BigUint) -> Result<String, Error> {
@@ -233,7 +233,17 @@ mod tests {
         );
 
         let remote_secret = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
-        let data = json!(hex::encode(remote_secret));
+        let data = {
+            let resp = KbsResponse {
+                protected: "".to_string(),
+                encrypted_key: "".to_string(),
+                iv: "".to_string(),
+                ciphertext: hex::encode(remote_secret),
+                tag: "".to_string(),
+            };
+
+            json!(resp)
+        };
         let secret = cs.secret(data.to_string()).unwrap();
         assert_eq!(secret, remote_secret);
     }
