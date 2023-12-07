@@ -18,9 +18,6 @@ struct ProxyArgs {
     /// HTTP url to KBS (e.g. http://server:4242)
     #[clap(long)]
     url: String,
-    /// ID of the workload
-    #[clap(long)]
-    workload: String,
     /// Pre-calculated measurement (hex encoded string - e.g. 8a60c0196d2e9f)
     #[clap(long)]
     measurement: String,
@@ -37,13 +34,10 @@ fn main() -> anyhow::Result<()> {
     let cr = ClientRegistration::new(&hex::decode(config.measurement)?, config.passphrase);
     let registration = cr.register();
 
-    info!(
-        "Registering workload {0} at {1}",
-        config.workload, config.url
-    );
+    info!("Registering workload at {}", config.url);
 
     let resp = Client::new()
-        .post(config.url.clone() + "/kbs/v0/register_workload")
+        .post(config.url.clone() + "/kbs/v0/register")
         .json(&registration)
         .send()
         .map_err(Error::HttpCommunication)?;
@@ -51,10 +45,9 @@ fn main() -> anyhow::Result<()> {
     debug!("register_workload - resp: {:#?}", resp);
 
     if resp.status().is_success() {
-        info!(
-            "Workload {0} successfully registered at {1}",
-            config.workload, config.url
-        );
+        info!("Workload successfully registered at {}", config.url);
+        let uuid = String::from_utf8(resp.bytes().unwrap().to_ascii_lowercase()).unwrap();
+        info!("registration UUID: {}", uuid);
         Ok(())
     } else {
         error!(
