@@ -1,6 +1,6 @@
 extern crate reference_kbc;
 
-use std::{env, os::unix::net::UnixStream, thread};
+use std::{env, os::unix::net::UnixStream, str::FromStr, thread};
 
 use log::{debug, error, info};
 use reference_kbc::{
@@ -12,6 +12,7 @@ use rsa::{traits::PublicKeyParts, RsaPrivateKey, RsaPublicKey};
 use serde_json::json;
 use sev::firmware::guest::AttestationReport;
 use sha2::{Digest, Sha512};
+use uuid::Uuid;
 
 fn svsm(socket: UnixStream, mut attestation: AttestationReport) {
     let mut proxy = Proxy::new(Box::new(UnixConnection(socket)));
@@ -104,21 +105,29 @@ fn main() {
     let registration = cr.register();
 
     let resp = client
-        .post(url_server.clone() + "/kbs/v0/register_workload")
+        .post(url_server.clone() + "/kbs/v0/register")
         .json(&registration)
         .send()
         .unwrap();
-    debug!("register_workload - resp: {:#?}", resp);
+    debug!("register - resp: {:#?}", resp);
 
     if resp.status().is_success() {
         info!("Registration success")
     } else {
-        error!(
+        panic!(
             "Registration error({0}) - {1}",
             resp.status(),
             resp.text().unwrap()
         )
     }
+
+    let ref_uuid = {
+        let ascii = String::from_utf8(resp.bytes().unwrap().to_ascii_lowercase()).unwrap();
+
+        Uuid::from_str(&ascii[1..ascii.len() - 1]).unwrap()
+    };
+
+    attestation.host_data[..16].copy_from_slice(&ref_uuid.into_bytes());
 
     let (socket, remote_socket) = UnixStream::pair().unwrap();
     let svsm = thread::spawn(move || svsm(remote_socket, attestation));
