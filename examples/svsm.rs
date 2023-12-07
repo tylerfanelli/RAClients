@@ -8,7 +8,7 @@ use reference_kbc::{
     client_registration::ClientRegistration,
     client_session::{ClientSession, ClientTeeSnp, SnpGeneration},
 };
-use rsa::{traits::PublicKeyParts, RsaPrivateKey, RsaPublicKey};
+use rsa::{traits::PublicKeyParts, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use serde_json::json;
 use sev::firmware::guest::AttestationReport;
 use sha2::{Digest, Sha512};
@@ -80,9 +80,34 @@ fn svsm(socket: UnixStream, mut attestation: AttestationReport) {
     let data = proxy.read_json().unwrap();
     let resp: Response = serde_json::from_value(data).unwrap();
     if resp.is_success() {
-        info!("Attestation success - {}", resp.body)
+        info!("Attestation success - {}", resp.body);
     } else {
-        error!("Attestation error({0}) - {1}", resp.status, resp.body)
+        error!("Attestation error({0}) - {1}", resp.status, resp.body);
+    }
+
+    info!("Fetching LUKS passphrase");
+
+    let req = Request {
+        endpoint: "/kbs/v0/resource".to_string(),
+        method: HttpMethod::GET,
+        body: json!(""),
+    };
+
+    proxy.write_json(&json!(req)).unwrap();
+    let data = proxy.read_json().unwrap();
+    let resp: Response = serde_json::from_value(data).unwrap();
+    if resp.is_success() {
+        debug!("Key fetch success - {}", resp.body);
+        let secret = cs.secret(resp.body).unwrap();
+        let decrypted = priv_key
+            .decrypt(Pkcs1v15Encrypt::default(), &secret)
+            .unwrap();
+        info!(
+            "Decrypted passphrase: {}",
+            String::from_utf8(decrypted).unwrap()
+        );
+    } else {
+        error!("Key fetch error({0}) - {1}", resp.status, resp.body);
     }
 }
 
