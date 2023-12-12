@@ -106,7 +106,7 @@ fn main() -> anyhow::Result<()> {
     let config = ProxyArgs::parse();
 
     if config.force {
-        std::fs::remove_file(config.unix.clone())?;
+        let _ = std::fs::remove_file(config.unix.clone());
     }
 
     let listener = UnixListener::bind(config.unix).map_err(Error::UnixListen)?;
