@@ -2,23 +2,9 @@ use kbs_types::{Response as KbsResponse, SnpAttestation, Tee};
 use serde_json::{json, Value};
 
 use crate::{
-    client_session::{ClientTee, Error},
-    lib::{fmt, Display, String, ToString},
+    client_session::{ClientTee, Error, SnpGeneration},
+    lib::{String, ToString},
 };
-
-pub enum SnpGeneration {
-    Milan,
-    Genoa,
-}
-
-impl Display for SnpGeneration {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            SnpGeneration::Milan => write!(f, "milan"),
-            SnpGeneration::Genoa => write!(f, "genoa"),
-        }
-    }
-}
 
 pub struct KeybrokerClientSnp {
     attestation: SnpAttestation,

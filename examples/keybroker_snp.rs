@@ -5,10 +5,7 @@ use std::env;
 use log::{debug, error, info};
 use reference_kbc::{
     client_registration::ClientRegistration,
-    client_session::{
-        keybroker::{KeybrokerClientSnp, SnpGeneration},
-        ClientSession,
-    },
+    client_session::{keybroker::KeybrokerClientSnp, ClientSession, SnpGeneration},
 };
 use rsa::{traits::PublicKeyParts, RsaPrivateKey, RsaPublicKey};
 use sev::firmware::guest::AttestationReport;

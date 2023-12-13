@@ -6,10 +6,7 @@ use log::{debug, error, info};
 use reference_kbc::{
     client_proxy::{unix::UnixConnection, Error as CPError, HttpMethod, Proxy, Request, Response},
     client_registration::ClientRegistration,
-    client_session::{
-        keybroker::{KeybrokerClientSnp, SnpGeneration},
-        ClientSession,
-    },
+    client_session::{keybroker::KeybrokerClientSnp, ClientSession, SnpGeneration},
 };
 use rsa::{traits::PublicKeyParts, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use serde_json::json;

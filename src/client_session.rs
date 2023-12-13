@@ -3,7 +3,7 @@ use kbs_types::{Attestation, Challenge, Request, Tee, TeePubKey};
 use num_bigint::BigUint;
 use serde_json::{json, Value};
 
-use crate::lib::{fmt, Debug, String, ToString, Vec};
+use crate::lib::{fmt, Debug, Display, String, ToString, Vec};
 
 #[cfg(feature = "keybroker")]
 pub mod keybroker;
@@ -41,6 +41,20 @@ impl From<hex::FromHexError> for Error {
 impl From<Error> for crate::Error {
     fn from(e: Error) -> Self {
         Self::CS(e)
+    }
+}
+
+pub enum SnpGeneration {
+    Milan,
+    Genoa,
+}
+
+impl Display for SnpGeneration {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SnpGeneration::Milan => write!(f, "milan"),
+            SnpGeneration::Genoa => write!(f, "genoa"),
+        }
     }
 }
 
