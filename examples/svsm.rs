@@ -99,9 +99,7 @@ fn svsm(socket: UnixStream, mut attestation: AttestationReport) {
     if resp.is_success() {
         debug!("Key fetch success - {}", resp.body);
         let secret = cs.secret(resp.body).unwrap();
-        let decrypted = priv_key
-            .decrypt(Pkcs1v15Encrypt::default(), &secret)
-            .unwrap();
+        let decrypted = priv_key.decrypt(Pkcs1v15Encrypt, &secret).unwrap();
         info!(
             "Decrypted passphrase: {}",
             String::from_utf8(decrypted).unwrap()
