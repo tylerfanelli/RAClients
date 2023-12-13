@@ -49,9 +49,7 @@ pub trait ClientTee {
     fn evidence(&self) -> Value;
 }
 
-pub struct ClientSession {
-    session_id: Option<String>,
-}
+pub struct ClientSession {}
 
 impl Default for ClientSession {
     fn default() -> Self {
@@ -61,15 +59,7 @@ impl Default for ClientSession {
 
 impl ClientSession {
     pub fn new() -> Self {
-        ClientSession { session_id: None }
-    }
-
-    pub fn set_session_id(&mut self, str: String) {
-        self.session_id = Some(str);
-    }
-
-    pub fn session_id(&self) -> &Option<String> {
-        &self.session_id
+        ClientSession {}
     }
 
     pub fn request(&self, tee: &dyn ClientTee) -> Result<Value, Error> {
@@ -180,10 +170,6 @@ mod tests {
         let mut snp = ClientTeeSnp::new(SnpGeneration::Milan);
 
         let mut cs = ClientSession::new();
-        assert_eq!(*cs.session_id(), None);
-
-        cs.set_session_id("42".to_string());
-        assert_eq!(*cs.session_id(), Some("42".to_string()));
 
         let request = cs.request(&snp).unwrap();
         assert_eq!(
