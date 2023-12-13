@@ -1,8 +1,8 @@
-use kbs_types::{SnpAttestation, Tee};
+use kbs_types::{Response as KbsResponse, SnpAttestation, Tee};
 use serde_json::{json, Value};
 
 use crate::{
-    client_session::ClientTee,
+    client_session::{ClientTee, Error},
     lib::{fmt, Display, String, ToString},
 };
 
@@ -54,6 +54,12 @@ impl ClientTee for KeybrokerClientSnp {
 
     fn evidence(&self) -> Value {
         json!(self.attestation)
+    }
+
+    fn secret(&self, data: String) -> Result<String, Error> {
+        let resp: KbsResponse = serde_json::from_str(&data)?;
+
+        Ok(resp.ciphertext)
     }
 }
 
@@ -129,7 +135,7 @@ mod tests {
 
             json!(resp)
         };
-        let secret = cs.secret(data.to_string()).unwrap();
+        let secret = cs.secret(data.to_string(), &snp).unwrap();
         assert_eq!(secret, remote_secret);
     }
 }

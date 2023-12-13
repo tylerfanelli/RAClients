@@ -1,5 +1,5 @@
 use base64ct::{Base64, Encoding};
-use kbs_types::{Attestation, Challenge, Request, Response as KbsResponse, Tee, TeePubKey};
+use kbs_types::{Attestation, Challenge, Request, Tee, TeePubKey};
 use num_bigint::BigUint;
 use serde_json::{json, Value};
 
@@ -49,6 +49,7 @@ pub trait ClientTee {
     fn tee(&self) -> Tee;
     fn extra_params(&self) -> Value;
     fn evidence(&self) -> Value;
+    fn secret(&self, data: String) -> Result<String, Error>;
 }
 
 pub struct ClientSession {}
@@ -101,11 +102,9 @@ impl ClientSession {
         Ok(json!(attestation))
     }
 
-    pub fn secret(&self, data: String) -> Result<Vec<u8>, Error> {
-        let resp: KbsResponse = serde_json::from_str(&data)?;
-
+    pub fn secret(&self, data: String, tee: &dyn ClientTee) -> Result<Vec<u8>, Error> {
         // TODO: consider using decode_to_slice() to avoid heap allocation
-        Ok(hex::decode(resp.ciphertext)?)
+        Ok(hex::decode(tee.secret(data)?)?)
     }
 
     pub fn encode_key(key: &BigUint) -> Result<String, Error> {

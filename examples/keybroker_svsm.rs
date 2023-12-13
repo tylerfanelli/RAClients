@@ -101,7 +101,7 @@ fn svsm(socket: UnixStream, mut attestation: AttestationReport) {
     let resp: Response = serde_json::from_value(data).unwrap();
     if resp.is_success() {
         debug!("Key fetch success - {}", resp.body);
-        let secret = cs.secret(resp.body).unwrap();
+        let secret = cs.secret(resp.body, &snp).unwrap();
         let decrypted = priv_key.decrypt(Pkcs1v15Encrypt, &secret).unwrap();
         info!(
             "Decrypted passphrase: {}",
