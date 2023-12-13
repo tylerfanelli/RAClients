@@ -6,9 +6,10 @@ authors = ["Stefano Garzarella <sgarzare@redhat.com>"]
 
 [features]
 default = [ "std", "keybroker" ]
-alloc = [ "base64ct/alloc", "hex/alloc", "kbs-types/alloc", "serde/alloc", "serde_json/alloc" ]
-std = [ "base64ct/std", "hex/std", "kbs-types/std", "serde/std", "serde_json/std" ]
+alloc = [ "base64ct/alloc", "hex/alloc", "kbs-types/alloc", "kbs-types-reference-kbs?/alloc", "serde/alloc", "serde_json/alloc" ]
+std = [ "base64ct/std", "hex/std", "kbs-types/std", "kbs-types-reference-kbs?/std", "serde/std", "serde_json/std" ]
 keybroker = []
+reference_kbs = [ "dep:kbs-types-reference-kbs" ]
 
 [dependencies]
 anyhow = { version = "1.0.75", default-features = false }
@@ -16,6 +17,7 @@ base64ct = { version = "1.6.0", default-features = false }
 hex = { version = "0.4", default-features = false }
 #kbs-types = { version = "0.5.0", default-features = false }
 kbs-types = { git = "https://github.com/tylerfanelli/kbs-types", branch = "snp_mods", default-features = false, features = ["tee-snp"] }
+kbs-types-reference-kbs = { package = "kbs-types", git = "https://github.com/virtee/kbs-types", rev = "5a9b4df73e7", default-features = false, features = ["tee-snp"], optional = true }
 num-bigint = { version = "0.8", default-features = false, package = "num-bigint-dig" }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false }
@@ -34,6 +36,11 @@ thiserror = "1.0.50"
 uuid = { version = "1.5.0", features = ["serde"] }
 
 [[example]]
+name = "svsm-register"
+path = "examples/svsm-register.rs"
+required-features = [ "keybroker", "reference_kbs", "std" ]
+
+[[example]]
 name = "keybroker-snp"
 path = "examples/keybroker/snp.rs"
 required-features = [ "keybroker", "std" ]
@@ -42,3 +49,13 @@ required-features = [ "keybroker", "std" ]
 name = "keybroker-svsm"
 path = "examples/keybroker/svsm.rs"
 required-features = [ "keybroker", "std" ]
+
+[[example]]
+name = "reference_kbs-snp"
+path = "examples/reference_kbs/snp.rs"
+required-features = [ "reference_kbs", "std" ]
+
+[[example]]
+name = "reference_kbs-svsm"
+path = "examples/reference_kbs/svsm.rs"
+required-features = [ "reference_kbs", "std" ]
