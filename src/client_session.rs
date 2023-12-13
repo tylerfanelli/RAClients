@@ -1,12 +1,9 @@
 use base64ct::{Base64, Encoding};
-use kbs_types::{Attestation, Challenge, Request, Tee, TeePubKey};
+pub use kbs_types::{Attestation, Challenge, Request, Tee, TeePubKey};
 use num_bigint::BigUint;
 use serde_json::{json, Value};
 
-use crate::lib::{fmt, Debug, Display, String, ToString, Vec};
-
-#[cfg(feature = "keybroker")]
-pub mod keybroker;
+use crate::lib::{fmt, Debug, String, ToString, Vec};
 
 #[derive(Debug)]
 pub enum Error {
@@ -44,21 +41,7 @@ impl From<Error> for crate::Error {
     }
 }
 
-pub enum SnpGeneration {
-    Milan,
-    Genoa,
-}
-
-impl Display for SnpGeneration {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            SnpGeneration::Milan => write!(f, "milan"),
-            SnpGeneration::Genoa => write!(f, "genoa"),
-        }
-    }
-}
-
-pub trait ClientTee {
+pub trait TeeSession {
     fn version(&self) -> String;
     fn tee(&self) -> Tee;
     fn extra_params(&self) -> Value;
@@ -79,7 +62,7 @@ impl ClientSession {
         ClientSession {}
     }
 
-    pub fn request(&self, tee: &dyn ClientTee) -> Result<Value, Error> {
+    pub fn request(&self, tee: &dyn TeeSession) -> Result<Value, Error> {
         let request = Request {
             version: tee.version(),
             tee: tee.tee(),
@@ -99,7 +82,7 @@ impl ClientSession {
         &self,
         k_mod: String,
         k_exp: String,
-        tee: &dyn ClientTee,
+        tee: &dyn TeeSession,
     ) -> Result<Value, Error> {
         let tee_pubkey = TeePubKey {
             kty: "RSA".to_string(),
@@ -116,7 +99,7 @@ impl ClientSession {
         Ok(json!(attestation))
     }
 
-    pub fn secret(&self, data: String, tee: &dyn ClientTee) -> Result<Vec<u8>, Error> {
+    pub fn secret(&self, data: String, tee: &dyn TeeSession) -> Result<Vec<u8>, Error> {
         // TODO: consider using decode_to_slice() to avoid heap allocation
         Ok(hex::decode(tee.secret(data)?)?)
     }

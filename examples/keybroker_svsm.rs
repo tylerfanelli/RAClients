@@ -6,7 +6,11 @@ use log::{debug, error, info};
 use reference_kbc::{
     client_proxy::{unix::UnixConnection, Error as CPError, HttpMethod, Proxy, Request, Response},
     client_registration::ClientRegistration,
-    client_session::{keybroker::KeybrokerClientSnp, ClientSession, SnpGeneration},
+    client_session::ClientSession,
+    clients::{
+        keybroker::{KeybrokerClientSnp, KeybrokerRegistration},
+        SnpGeneration,
+    },
 };
 use rsa::{traits::PublicKeyParts, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use serde_json::json;
@@ -124,8 +128,12 @@ fn main() {
     attestation.measurement[0] = 42;
     attestation.measurement[47] = 24;
 
-    let cr = ClientRegistration::new(&attestation.measurement, "secret passphrase".to_string());
-    let registration = cr.register();
+    let kr = KeybrokerRegistration::new();
+    let registration = ClientRegistration::register(
+        &attestation.measurement,
+        "secret passphrase".to_string(),
+        &kr,
+    );
 
     let resp = client
         .post(url_server.clone() + "/kbs/v0/register")

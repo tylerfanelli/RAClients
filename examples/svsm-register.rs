@@ -1,6 +1,8 @@
 use clap::Parser;
 use log::{debug, error, info};
-use reference_kbc::client_registration::ClientRegistration;
+use reference_kbc::{
+    client_registration::ClientRegistration, clients::keybroker::KeybrokerRegistration,
+};
 use reqwest::blocking::Client;
 use thiserror::Error as ThisError;
 
@@ -31,8 +33,9 @@ fn main() -> anyhow::Result<()> {
 
     let config = ProxyArgs::parse();
 
-    let cr = ClientRegistration::new(&hex::decode(config.measurement)?, config.passphrase);
-    let registration = cr.register();
+    let kr = KeybrokerRegistration::new();
+    let registration =
+        ClientRegistration::register(&hex::decode(config.measurement)?, config.passphrase, &kr);
 
     info!("Registering workload at {}", config.url);
 

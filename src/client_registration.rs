@@ -1,42 +1,25 @@
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 
-use crate::lib::{Debug, String};
+use crate::lib::String;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ClientRegistration {
-    measurement: String,
-    secret: String,
+pub trait TeeRegistration {
+    fn register(&self, measurement: &[u8], secret: String) -> Value;
+}
+
+pub struct ClientRegistration {}
+
+impl Default for ClientRegistration {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ClientRegistration {
-    pub fn new(measurement: &[u8], secret: String) -> Self {
-        Self {
-            measurement: hex::encode(measurement),
-            secret,
-        }
+    pub fn new() -> Self {
+        Self {}
     }
 
-    pub fn register(&self) -> Value {
-        json!(self)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_registration() {
-        let cr = ClientRegistration::new(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "secret".to_string());
-
-        let registration = cr.register();
-        assert_eq!(
-            registration,
-            json!({
-                "measurement": "00010203040506070809",
-                "secret": "secret",
-            }),
-        );
+    pub fn register(measurement: &[u8], secret: String, tee: &dyn TeeRegistration) -> Value {
+        tee.register(measurement, secret)
     }
 }

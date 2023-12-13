@@ -1,8 +1,11 @@
 use kbs_types::{Response as KbsResponse, SnpAttestation, Tee};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::{
-    client_session::{ClientTee, Error, SnpGeneration},
+    client_registration::TeeRegistration,
+    client_session::{Error, TeeSession},
+    clients::SnpGeneration,
     lib::{String, ToString},
 };
 
@@ -25,7 +28,7 @@ impl KeybrokerClientSnp {
     }
 }
 
-impl ClientTee for KeybrokerClientSnp {
+impl TeeSession for KeybrokerClientSnp {
     fn version(&self) -> String {
         "0.1.0".to_string()
     }
@@ -49,12 +52,43 @@ impl ClientTee for KeybrokerClientSnp {
     }
 }
 
+pub struct KeybrokerRegistration {}
+
+impl Default for KeybrokerRegistration {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl KeybrokerRegistration {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Workload {
+    measurement: String,
+    secret: String,
+}
+
+impl TeeRegistration for KeybrokerRegistration {
+    fn register(&self, measurement: &[u8], secret: String) -> Value {
+        json!(Workload {
+            measurement: hex::encode(measurement),
+            secret,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::str::FromStr;
 
+    use num_bigint::BigUint;
+
     use super::*;
-    use crate::client_session::*;
+    use crate::{client_registration::*, client_session::*};
 
     #[test]
     fn test_session() {
@@ -123,5 +157,22 @@ mod tests {
         };
         let secret = cs.secret(data.to_string(), &snp).unwrap();
         assert_eq!(secret, remote_secret);
+    }
+
+    #[test]
+    fn test_registration() {
+        let kr = KeybrokerRegistration::new();
+        let registration = ClientRegistration::register(
+            &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            "secret".to_string(),
+            &kr,
+        );
+        assert_eq!(
+            registration,
+            json!({
+                "measurement": "00010203040506070809",
+                "secret": "secret",
+            }),
+        );
     }
 }

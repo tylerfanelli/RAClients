@@ -41,6 +41,7 @@ mod lib {
 pub mod client_proxy;
 pub mod client_registration;
 pub mod client_session;
+pub mod clients;
 
 #[derive(Debug)]
 pub enum Error {
