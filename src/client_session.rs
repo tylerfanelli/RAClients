@@ -45,6 +45,7 @@ impl From<Error> for crate::Error {
 }
 
 pub trait ClientTee {
+    fn version(&self) -> String;
     fn tee(&self) -> Tee;
     fn extra_params(&self) -> Value;
     fn evidence(&self) -> Value;
@@ -65,7 +66,7 @@ impl ClientSession {
 
     pub fn request(&self, tee: &dyn ClientTee) -> Result<Value, Error> {
         let request = Request {
-            version: "0.1.0".to_string(),
+            version: tee.version(),
             tee: tee.tee(),
             extra_params: json!(tee.extra_params()).to_string(),
         };

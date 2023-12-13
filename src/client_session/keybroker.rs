@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 
 use crate::{
     client_session::ClientTee,
-    lib::{fmt, Display, ToString},
+    lib::{fmt, Display, String, ToString},
 };
 
 pub enum SnpGeneration {
@@ -40,6 +40,10 @@ impl KeybrokerClientSnp {
 }
 
 impl ClientTee for KeybrokerClientSnp {
+    fn version(&self) -> String {
+        "0.1.0".to_string()
+    }
+
     fn tee(&self) -> Tee {
         Tee::Snp
     }
