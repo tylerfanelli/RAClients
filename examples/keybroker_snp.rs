@@ -5,7 +5,10 @@ use std::env;
 use log::{debug, error, info};
 use reference_kbc::{
     client_registration::ClientRegistration,
-    client_session::{ClientSession, ClientTeeSnp, SnpGeneration},
+    client_session::{
+        keybroker::{KeybrokerClientSnp, SnpGeneration},
+        ClientSession,
+    },
 };
 use rsa::{traits::PublicKeyParts, RsaPrivateKey, RsaPublicKey};
 use sev::firmware::guest::AttestationReport;
@@ -51,7 +54,7 @@ fn main() {
         )
     }
 
-    let mut snp = ClientTeeSnp::new(SnpGeneration::Milan);
+    let mut snp = KeybrokerClientSnp::new(SnpGeneration::Milan);
 
     let mut cs = ClientSession::new();
 

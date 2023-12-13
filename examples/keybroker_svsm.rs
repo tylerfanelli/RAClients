@@ -6,7 +6,10 @@ use log::{debug, error, info};
 use reference_kbc::{
     client_proxy::{unix::UnixConnection, Error as CPError, HttpMethod, Proxy, Request, Response},
     client_registration::ClientRegistration,
-    client_session::{ClientSession, ClientTeeSnp, SnpGeneration},
+    client_session::{
+        keybroker::{KeybrokerClientSnp, SnpGeneration},
+        ClientSession,
+    },
 };
 use rsa::{traits::PublicKeyParts, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use serde_json::json;
@@ -22,7 +25,7 @@ fn svsm(socket: UnixStream, mut attestation: AttestationReport) {
     let priv_key = RsaPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
     let pub_key = RsaPublicKey::from(&priv_key);
 
-    let mut snp = ClientTeeSnp::new(SnpGeneration::Milan);
+    let mut snp = KeybrokerClientSnp::new(SnpGeneration::Milan);
     let mut cs = ClientSession::new();
 
     let request = cs.request(&snp).unwrap();
