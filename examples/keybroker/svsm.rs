@@ -4,7 +4,10 @@ use std::{env, os::unix::net::UnixStream, str::FromStr, thread};
 
 use log::{debug, error, info};
 use reference_kbc::{
-    client_proxy::{unix::UnixConnection, Error as CPError, HttpMethod, Proxy, Request, Response},
+    client_proxy::{
+        unix::UnixConnection, Error as CPError, HttpMethod, Proxy, ProxyRequest, Request,
+        RequestType, Response,
+    },
     client_registration::ClientRegistration,
     client_session::ClientSession,
     clients::{
@@ -31,23 +34,15 @@ fn svsm(socket: UnixStream, mut attestation: AttestationReport) {
 
     let request = cs.request(&snp).unwrap();
 
-    let req = Request {
-        endpoint: "/kbs/v0/auth".to_string(),
-        method: HttpMethod::POST,
-        body: json!(&request),
+    let challenge = match snp.make(&mut proxy, RequestType::Auth, Some(&request)) {
+        Ok(challenge) => challenge.unwrap(),
+        Err(e) => {
+            error!("Authentication error - {e}");
+            return;
+        }
     };
-    proxy.write_json(&json!(req)).unwrap();
-    let data = proxy.read_json().unwrap();
-    let resp: Response = serde_json::from_value(data).unwrap();
 
-    let challenge = if resp.is_success() {
-        let challenge = resp.body;
-        info!("Authentication success - {}", challenge);
-        challenge
-    } else {
-        error!("Authentication error({0}) - {1}", resp.status, resp.body);
-        return;
-    };
+    info!("Authentication success - {}", challenge);
 
     debug!("Challenge: {:#?}", challenge);
     let nonce = cs
@@ -75,42 +70,32 @@ fn svsm(socket: UnixStream, mut attestation: AttestationReport) {
 
     let attestation = cs.attestation(key_n_encoded, key_e_encoded, &snp).unwrap();
 
-    let req = Request {
-        endpoint: "/kbs/v0/attest".to_string(),
-        method: HttpMethod::POST,
-        body: json!(&attestation),
-    };
-    proxy.write_json(&json!(req)).unwrap();
-    let data = proxy.read_json().unwrap();
-    let resp: Response = serde_json::from_value(data).unwrap();
-    if resp.is_success() {
-        info!("Attestation success - {}", resp.body);
-    } else {
-        error!("Attestation error({0}) - {1}", resp.status, resp.body);
+    if let Err(e) = snp.make(&mut proxy, RequestType::Attest, Some(&attestation)) {
+        error!("Attestation error - {e}");
+        return;
     }
+
+    info!("Attestation success");
 
     info!("Fetching LUKS passphrase");
 
-    let req = Request {
-        endpoint: "/kbs/v0/resource".to_string(),
-        method: HttpMethod::GET,
-        body: json!(""),
+    let key = match snp.make(&mut proxy, RequestType::Key, None) {
+        Ok(key) => key.unwrap(),
+        Err(e) => {
+            error!("Key fetch error - {e}");
+            return;
+        }
     };
 
-    proxy.write_json(&json!(req)).unwrap();
-    let data = proxy.read_json().unwrap();
-    let resp: Response = serde_json::from_value(data).unwrap();
-    if resp.is_success() {
-        debug!("Key fetch success - {}", resp.body);
-        let secret = cs.secret(resp.body, &snp).unwrap();
-        let decrypted = priv_key.decrypt(Pkcs1v15Encrypt, &secret).unwrap();
-        info!(
-            "Decrypted passphrase: {}",
-            String::from_utf8(decrypted).unwrap()
-        );
-    } else {
-        error!("Key fetch error({0}) - {1}", resp.status, resp.body);
-    }
+    debug!("Key fetch success - {}", key);
+
+    let secret = cs.secret(key, &snp).unwrap();
+    let decrypted = priv_key.decrypt(Pkcs1v15Encrypt, &secret).unwrap();
+
+    info!(
+        "Decrypted passphrase: {}",
+        String::from_utf8(decrypted).unwrap()
+    );
 }
 
 fn main() {

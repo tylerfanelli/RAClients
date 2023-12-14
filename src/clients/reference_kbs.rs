@@ -3,8 +3,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::{
+    client_proxy::{
+        Error as CPError, HttpMethod, Proxy, ProxyRequest, Request, RequestType, Response,
+    },
     client_registration::TeeRegistration,
-    client_session::{Error, Tee, TeeSession},
+    client_session::{Error as CSError, Tee, TeeSession},
     clients::SnpGeneration,
     lib::{String, ToString},
 };
@@ -48,8 +51,49 @@ impl TeeSession for ReferenceKBSClientSnp {
         json!(self.attestation)
     }
 
-    fn secret(&self, data: String) -> Result<String, Error> {
+    fn secret(&self, data: String) -> Result<String, CSError> {
         Ok(serde_json::from_str(&data)?)
+    }
+}
+
+impl ProxyRequest for ReferenceKBSClientSnp {
+    fn make(
+        &self,
+        proxy: &mut Proxy,
+        req_type: RequestType,
+        body: Option<&Value>,
+    ) -> Result<Option<String>, CPError> {
+        let req = match req_type {
+            RequestType::Auth => Request {
+                endpoint: "/kbs/v0/auth".to_string(),
+                method: HttpMethod::POST,
+                body: json!(&body.ok_or(CPError::BodyExpected(req_type))?),
+            },
+            RequestType::Attest => Request {
+                endpoint: "/kbs/v0/attest".to_string(),
+                method: HttpMethod::POST,
+                body: json!(&body.ok_or(CPError::BodyExpected(req_type))?),
+            },
+            RequestType::Key => Request {
+                endpoint: "/kbs/v0/key/".to_string() + &self.request.workload_id,
+                method: HttpMethod::GET,
+                body: json!(""),
+            },
+        };
+
+        proxy.write_json(&json!(req))?;
+        let data = proxy.read_json()?;
+        let resp: Response = serde_json::from_value(data)?;
+
+        if !resp.is_success() {
+            return Err(CPError::HttpError(resp.status, resp.body));
+        }
+
+        match req_type {
+            RequestType::Auth => Ok(Some(resp.body)),
+            RequestType::Attest => Ok(None),
+            RequestType::Key => Ok(Some(resp.body)),
+        }
     }
 }
 

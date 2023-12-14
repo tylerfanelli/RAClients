@@ -4,7 +4,10 @@ use std::{env, os::unix::net::UnixStream, thread};
 
 use log::{debug, error, info};
 use reference_kbc::{
-    client_proxy::{unix::UnixConnection, Error as CPError, HttpMethod, Proxy, Request, Response},
+    client_proxy::{
+        unix::UnixConnection, Error as CPError, HttpMethod, Proxy, ProxyRequest, Request,
+        RequestType, Response,
+    },
     client_registration::ClientRegistration,
     client_session::ClientSession,
     clients::{
@@ -30,23 +33,15 @@ fn svsm(socket: UnixStream, workload_id: String, mut attestation: AttestationRep
 
     let request = cs.request(&snp).unwrap();
 
-    let req = Request {
-        endpoint: "/kbs/v0/auth".to_string(),
-        method: HttpMethod::POST,
-        body: json!(&request),
+    let challenge = match snp.make(&mut proxy, RequestType::Auth, Some(&request)) {
+        Ok(challenge) => challenge.unwrap(),
+        Err(e) => {
+            error!("Authentication error - {e}");
+            return;
+        }
     };
-    proxy.write_json(&json!(req)).unwrap();
-    let data = proxy.read_json().unwrap();
-    let resp: Response = serde_json::from_value(data).unwrap();
 
-    let challenge = if resp.is_success() {
-        let challenge = resp.body;
-        info!("Authentication success - {}", challenge);
-        challenge
-    } else {
-        error!("Authentication error({0}) - {1}", resp.status, resp.body);
-        return;
-    };
+    info!("Authentication success - {}", challenge);
 
     debug!("Challenge: {:#?}", challenge);
     let nonce = cs
@@ -74,19 +69,12 @@ fn svsm(socket: UnixStream, workload_id: String, mut attestation: AttestationRep
 
     let attestation = cs.attestation(key_n_encoded, key_e_encoded, &snp).unwrap();
 
-    let req = Request {
-        endpoint: "/kbs/v0/attest".to_string(),
-        method: HttpMethod::POST,
-        body: json!(&attestation),
-    };
-    proxy.write_json(&json!(req)).unwrap();
-    let data = proxy.read_json().unwrap();
-    let resp: Response = serde_json::from_value(data).unwrap();
-    if resp.is_success() {
-        info!("Attestation success - {}", resp.body)
-    } else {
-        error!("Attestation error({0}) - {1}", resp.status, resp.body)
+    if let Err(e) = snp.make(&mut proxy, RequestType::Attest, Some(&attestation)) {
+        error!("Attestation error - {e}");
+        return;
     }
+
+    info!("Attestation success");
 }
 
 fn main() {

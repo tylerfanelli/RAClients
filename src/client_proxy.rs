@@ -13,6 +13,8 @@ pub enum Error {
     WriteZero,
     UnexpectedEof,
     Eof,
+    HttpError(u16, String),
+    BodyExpected(RequestType),
 }
 
 #[cfg(feature = "std")]
@@ -32,6 +34,12 @@ impl fmt::Display for Error {
             ),
             Self::UnexpectedEof => write!(f, "Unexpected EOF while filling the buffer"),
             Self::Eof => write!(f, "Reached end of file"),
+            Self::HttpError(status, body) => write!(f, "HTTP error code: {status} - {body}"),
+            Self::BodyExpected(rt) => write!(
+                f,
+                "Request type {:#?} expects a body, but it was not provided",
+                rt
+            ),
         }
     }
 }
@@ -153,6 +161,22 @@ impl Response {
     pub fn is_success(&self) -> bool {
         self.status >= 200 && self.status <= 299
     }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum RequestType {
+    Auth,
+    Attest,
+    Key,
+}
+
+pub trait ProxyRequest {
+    fn make(
+        &self,
+        proxy: &mut Proxy,
+        req_type: RequestType,
+        body: Option<&Value>,
+    ) -> Result<Option<String>, Error>;
 }
 
 pub struct Proxy {
