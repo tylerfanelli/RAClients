@@ -8,6 +8,7 @@ authors = ["Stefano Garzarella <sgarzare@redhat.com>"]
 default = [ "std", "keybroker" ]
 alloc = [ "base64ct/alloc", "hex/alloc", "kbs-types/alloc", "kbs-types-reference-kbs?/alloc", "serde/alloc", "serde_json/alloc" ]
 std = [ "base64ct/std", "hex/std", "kbs-types/std", "kbs-types-reference-kbs?/std", "serde/std", "serde_json/std" ]
+all_clients = [ "keybroker", "reference_kbs" ]
 keybroker = []
 reference_kbs = [ "dep:kbs-types-reference-kbs" ]
 
