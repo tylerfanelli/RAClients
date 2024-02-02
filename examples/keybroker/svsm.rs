@@ -1,7 +1,10 @@
 extern crate reference_kbc;
 
-use std::{env, os::unix::net::UnixStream, str::FromStr, thread};
+use std::{
+    env, fs::read_to_string, os::unix::net::UnixStream, path::PathBuf, str::FromStr, thread,
+};
 
+use base64ct::{Base64, Encoding};
 use log::{debug, error, info};
 use reference_kbc::{
     client_proxy::{
@@ -16,10 +19,9 @@ use reference_kbc::{
     },
 };
 use rsa::{traits::PublicKeyParts, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
-use serde_json::json;
+use serde_json::{from_str, json};
 use sev::firmware::guest::AttestationReport;
 use sha2::{Digest, Sha512};
-use uuid::Uuid;
 
 fn svsm(socket: UnixStream, mut attestation: AttestationReport) {
     let mut proxy = Proxy::new(Box::new(UnixConnection(socket)));
@@ -107,21 +109,28 @@ fn main() {
         .build()
         .unwrap();
 
+    let resources =
+        read_to_string(PathBuf::from_str("examples/keybroker/data/resources.json").unwrap())
+            .unwrap();
+    let policy =
+        read_to_string(PathBuf::from_str("examples/keybroker/data/policy.rego").unwrap()).unwrap();
+    let queries: Vec<String> = from_str(
+        &read_to_string(PathBuf::from_str("examples/keybroker/data/queries.json").unwrap())
+            .unwrap(),
+    )
+    .unwrap();
+
     info!("Connecting to KBS at {url_server}");
 
     let mut attestation = AttestationReport::default();
     attestation.measurement[0] = 42;
     attestation.measurement[47] = 24;
 
-    let kr = KeybrokerRegistration::new();
-    let registration = ClientRegistration::register(
-        &attestation.measurement,
-        "secret passphrase".to_string(),
-        &kr,
-    );
+    let kr = KeybrokerRegistration::new(policy, queries);
+    let registration = ClientRegistration::register(&attestation.measurement, resources, &kr);
 
     let resp = client
-        .post(url_server.clone() + "/kbs/v0/register")
+        .post(url_server.clone() + "/rvp/registration")
         .json(&registration)
         .send()
         .unwrap();
@@ -137,13 +146,11 @@ fn main() {
         )
     }
 
-    let ref_uuid = {
-        let ascii = String::from_utf8(resp.bytes().unwrap().to_ascii_lowercase()).unwrap();
+    let contents = resp.text().unwrap();
+    let host_data = Base64::decode_vec(&contents[1..contents.len() - 1]).unwrap();
+    debug!("host_data - {:#?}", host_data);
 
-        Uuid::from_str(&ascii[1..ascii.len() - 1]).unwrap()
-    };
-
-    attestation.host_data[..16].copy_from_slice(&ref_uuid.into_bytes());
+    attestation.host_data.copy_from_slice(&host_data);
 
     let (socket, remote_socket) = UnixStream::pair().unwrap();
     let svsm = thread::spawn(move || svsm(remote_socket, attestation));

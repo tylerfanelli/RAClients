@@ -1,7 +1,8 @@
 extern crate reference_kbc;
 
-use std::env;
+use std::{env, fs::read_to_string, path::PathBuf, str::FromStr};
 
+use base64ct::{Base64, Encoding};
 use log::{debug, error, info};
 use reference_kbc::{
     client_registration::ClientRegistration,
@@ -12,6 +13,7 @@ use reference_kbc::{
     },
 };
 use rsa::{traits::PublicKeyParts, RsaPrivateKey, RsaPublicKey};
+use serde_json::from_str;
 use sev::firmware::guest::AttestationReport;
 use sha2::{Digest, Sha512};
 
@@ -29,21 +31,28 @@ fn main() {
         .build()
         .unwrap();
 
+    let resources =
+        read_to_string(PathBuf::from_str("examples/keybroker/data/resources.json").unwrap())
+            .unwrap();
+    let policy =
+        read_to_string(PathBuf::from_str("examples/keybroker/data/policy.rego").unwrap()).unwrap();
+    let queries: Vec<String> = from_str(
+        &read_to_string(PathBuf::from_str("examples/keybroker/data/queries.json").unwrap())
+            .unwrap(),
+    )
+    .unwrap();
+
     info!("Connecting to KBS at {url}");
 
     let mut attestation = AttestationReport::default();
     attestation.measurement[0] = 42;
     attestation.measurement[47] = 24;
 
-    let kr = KeybrokerRegistration::new();
-    let registration = ClientRegistration::register(
-        &attestation.measurement,
-        "secret passphrase".to_string(),
-        &kr,
-    );
+    let kr = KeybrokerRegistration::new(policy, queries);
+    let registration = ClientRegistration::register(&attestation.measurement, resources, &kr);
 
     let resp = client
-        .post(url.clone() + "/kbs/v0/register_workload")
+        .post(url.clone() + "/rvp/registration")
         .json(&registration)
         .send()
         .unwrap();
@@ -52,12 +61,16 @@ fn main() {
     if resp.status().is_success() {
         info!("Registration success")
     } else {
-        error!(
+        panic!(
             "Registration error({0}) - {1}",
             resp.status(),
             resp.text().unwrap()
         )
     }
+
+    let contents = resp.text().unwrap();
+    let host_data = Base64::decode_vec(&contents[1..contents.len() - 1]).unwrap();
+    debug!("host_data - {:#?}", host_data);
 
     let mut snp = KeybrokerClientSnp::new(SnpGeneration::Milan);
 
@@ -99,6 +112,7 @@ fn main() {
     hasher.update(key_e_encoded.as_bytes());
 
     attestation.report_data = hasher.finalize().into();
+    attestation.host_data.copy_from_slice(&host_data);
 
     snp.update_report(unsafe {
         core::slice::from_raw_parts(

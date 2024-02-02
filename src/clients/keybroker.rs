@@ -9,7 +9,7 @@ use crate::{
     client_registration::TeeRegistration,
     client_session::{Error as CSError, TeeSession},
     clients::SnpGeneration,
-    lib::{String, ToString},
+    lib::{String, ToString, Vec},
 };
 
 pub struct KeybrokerClientSnp {
@@ -21,6 +21,7 @@ impl KeybrokerClientSnp {
         KeybrokerClientSnp {
             attestation: SnpAttestation {
                 report: "".to_string(),
+                cert_chain: "".to_string(),
                 gen: gen.to_string(),
             },
         }
@@ -41,7 +42,7 @@ impl TeeSession for KeybrokerClientSnp {
     }
 
     fn extra_params(&self) -> Value {
-        json!("")
+        Value::Null
     }
 
     fn evidence(&self) -> Value {
@@ -96,31 +97,32 @@ impl ProxyRequest for KeybrokerClientSnp {
     }
 }
 
-pub struct KeybrokerRegistration {}
-
-impl Default for KeybrokerRegistration {
-    fn default() -> Self {
-        Self::new()
-    }
+pub struct KeybrokerRegistration {
+    policy: String,
+    queries: Vec<String>,
 }
 
 impl KeybrokerRegistration {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(policy: String, queries: Vec<String>) -> Self {
+        KeybrokerRegistration { policy, queries }
     }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Workload {
-    measurement: String,
-    secret: String,
+    policy: String,
+    queries: Vec<String>,
+    reference: String,
+    resources: String,
 }
 
 impl TeeRegistration for KeybrokerRegistration {
     fn register(&self, measurement: &[u8], secret: String) -> Value {
         json!(Workload {
-            measurement: hex::encode(measurement),
-            secret,
+            policy: self.policy.clone(),
+            queries: self.queries.clone(),
+            reference: json!({"measurement": hex::encode(measurement)}).to_string(),
+            resources: secret,
         })
     }
 }
@@ -146,7 +148,7 @@ mod tests {
             json!({
                 "version": "0.1.0",
                 "tee": "snp",
-                "extra-params": json!("").to_string(),
+                "extra-params": json!(Value::Null).to_string(),
             }),
         );
 
@@ -181,6 +183,7 @@ mod tests {
                     "e": k_exp_encoded,
                 }),
                 "tee-evidence": json!({
+                    "cert_chain": "",
                     "gen": "milan",
                     "report": hex::encode(report),
                 }).to_string(),
@@ -205,7 +208,7 @@ mod tests {
 
     #[test]
     fn test_registration() {
-        let kr = KeybrokerRegistration::new();
+        let kr = KeybrokerRegistration::new("my_policy".to_string(), vec!["my_query1".to_string()]);
         let registration = ClientRegistration::register(
             &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
             "secret".to_string(),
@@ -214,8 +217,10 @@ mod tests {
         assert_eq!(
             registration,
             json!({
-                "measurement": "00010203040506070809",
-                "secret": "secret",
+                "policy": "my_policy",
+                "queries": vec!["my_query1".to_string()],
+                "reference": json!({"measurement": "00010203040506070809"}).to_string(),
+                "resources": "secret",
             }),
         );
     }

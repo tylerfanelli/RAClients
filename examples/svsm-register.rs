@@ -1,4 +1,6 @@
-use clap::Parser;
+use std::{fs::read_to_string, path::PathBuf};
+
+use clap::{Args, Parser};
 use log::{debug, error, info};
 use reference_kbc::{
     client_registration::ClientRegistration,
@@ -15,6 +17,46 @@ pub enum Error {
     RegistrationFailed,
 }
 
+#[derive(Args, Clone, Debug)]
+struct KeybrokerArgs {
+    /// The remote server is `keybroker`
+    #[clap(
+        long,
+        group = "server_type",
+        requires = "policy",
+        requires = "queries",
+        requires = "resources"
+    )]
+    keybroker: bool,
+    /// [keybroker] Path to the policy file
+    #[arg(long, requires = "keybroker")]
+    policy: Option<PathBuf>,
+    /// [keybroker] Path to the queries file
+    #[arg(long, requires = "keybroker")]
+    queries: Option<PathBuf>,
+    /// [keybroker] Path to the resources file
+    #[arg(long, requires = "keybroker")]
+    resources: Option<PathBuf>,
+}
+
+#[derive(Args, Clone, Debug)]
+struct RefKBSArgs {
+    /// The remote server is `reference_kbs`
+    #[arg(
+        long,
+        group = "server_type",
+        requires = "workload_id",
+        requires = "passphrase"
+    )]
+    reference_kbs: bool,
+    /// [reference_kbs] ID of the workload
+    #[arg(long, requires = "reference_kbs")]
+    workload_id: Option<String>,
+    /// [reference_kbs] Secret to share with the CVM
+    #[arg(long, requires = "reference_kbs")]
+    passphrase: Option<String>,
+}
+
 #[derive(Parser, Debug)]
 #[clap(version, about, long_about = None, group(
     clap::ArgGroup::new("server_type")
@@ -22,21 +64,15 @@ pub enum Error {
 ))]
 struct ProxyArgs {
     /// HTTP url to KBS (e.g. http://server:4242)
-    #[clap(long)]
+    #[arg(long)]
     url: String,
     /// Pre-calculated measurement (hex encoded string - e.g. 8a60c0196d2e9f)
-    #[clap(long)]
+    #[arg(long)]
     measurement: String,
-    /// Secret to share with the CVM
-    #[clap(long)]
-    passphrase: String,
-    /// The remote server is `keybroker`
-    #[clap(long, group = "server_type")]
-    keybroker: bool,
-    /// The remote server is `reference_kbs`. ID of the workload must be
-    /// specified.
-    #[clap(long, group = "server_type", value_name = "WORKLOAD_ID")]
-    reference_kbs: Option<String>,
+    #[command(flatten)]
+    kb_args: KeybrokerArgs,
+    #[command(flatten)]
+    rkbs_args: RefKBSArgs,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -46,17 +82,22 @@ fn main() -> anyhow::Result<()> {
 
     info!("Registering workload at {}", config.url);
 
-    let (resource, registration) = if config.keybroker {
-        let kr = KeybrokerRegistration::new();
-        let registration =
-            ClientRegistration::register(&hex::decode(config.measurement)?, config.passphrase, &kr);
+    let (resource, registration) = if config.kb_args.keybroker {
+        let resources = read_to_string(config.kb_args.resources.unwrap())?;
+        let policy = read_to_string(config.kb_args.policy.unwrap())?;
+        let queries: Vec<String> =
+            serde_json::from_str(&read_to_string(config.kb_args.queries.unwrap())?)?;
 
-        ("/kbs/v0/register", registration)
-    } else if config.reference_kbs.is_some() {
-        let rkr = ReferenceKBSRegistration::new(config.reference_kbs.unwrap().clone());
+        let kr = KeybrokerRegistration::new(policy, queries);
+        let registration =
+            ClientRegistration::register(&hex::decode(config.measurement)?, resources, &kr);
+
+        ("/rvp/registration", registration)
+    } else if config.rkbs_args.reference_kbs {
+        let rkr = ReferenceKBSRegistration::new(config.rkbs_args.workload_id.unwrap().clone());
         let registration = ClientRegistration::register(
             &hex::decode(config.measurement)?,
-            config.passphrase,
+            config.rkbs_args.passphrase.unwrap(),
             &rkr,
         );
         ("/kbs/v0/register_workload", registration)
@@ -83,9 +124,8 @@ fn main() -> anyhow::Result<()> {
 
     info!("Workload successfully registered at {}", config.url);
 
-    if config.keybroker {
-        let uuid = String::from_utf8(resp.bytes().unwrap().to_ascii_lowercase()).unwrap();
-        info!("registration UUID: {}", uuid);
+    if config.kb_args.keybroker {
+        info!("registration - host_data: {}", resp.text().unwrap());
     }
 
     Ok(())

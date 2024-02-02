@@ -1,4 +1,4 @@
-use kbs_types_reference_kbs::{SnpAttestation, SnpRequest};
+use kbs_types::{SnpAttestation, SnpRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
