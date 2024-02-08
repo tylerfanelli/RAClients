@@ -1,12 +1,13 @@
-# reference-kbc
+# Remote Attestation Clients
 
-This repository was created as part of a PoC to implement a client for
-[reference-kbs](https://github.com/virtee/reference-kbs) that also works with
-`no_std` crates. This is to support the client also in firmware such as
-[COCONUT-SVSM](https://github.com/coconut-svsm/svsm).
+This repository is created to support [Remote Attestation](https://datatracker.ietf.org/doc/html/rfc9334)
+clients that also works with `no_std` crates. This is to support the client
+also in firmware such as [COCONUT-SVSM](https://github.com/coconut-svsm/svsm).
 
-As development continues and we decided to support more servers such as
-[KBS](https://github.com/confidential-containers/kbs/) and
-[keybroker](https://github.com/tylerfanelli/keybroker),
-**this repository is archived and we move development to
-https://github.com/stefano-garzarella/RAClients**
+Our goal is to support several servers:
+- [reference-kbs](https://github.com/virtee/reference-kbs)
+  - Supported, but used just for testing and debugging
+- [keybroker](https://github.com/tylerfanelli/keybroker)
+  - Supported
+- [KBS](https://github.com/confidential-containers/kbs/)
+  - TODO
