@@ -1,5 +1,5 @@
 [package]
-name = "reference-kbc"
+name = "raclients"
 version = "0.1.0"
 edition = "2021"
 authors = ["Stefano Garzarella <sgarzare@redhat.com>"]
