@@ -5,7 +5,7 @@ use std::{
 
 use clap::Parser;
 use log::{debug, error, info};
-use reference_kbc::client_proxy::{
+use raclients::client_proxy::{
     unix::UnixConnection, Error as CPError, HttpMethod, Proxy, Request, Response,
 };
 use reqwest::blocking::{Client, ClientBuilder};

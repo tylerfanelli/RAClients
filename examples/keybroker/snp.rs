@@ -1,10 +1,10 @@
-extern crate reference_kbc;
+extern crate raclients;
 
 use std::{env, fs::read_to_string, path::PathBuf, str::FromStr};
 
 use base64ct::{Base64, Encoding};
 use log::{debug, error, info};
-use reference_kbc::{
+use raclients::{
     client_registration::ClientRegistration,
     client_session::ClientSession,
     clients::{

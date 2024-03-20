@@ -1,4 +1,4 @@
-extern crate reference_kbc;
+extern crate raclients;
 
 use std::{
     env, fs::read_to_string, os::unix::net::UnixStream, path::PathBuf, str::FromStr, thread,
@@ -6,7 +6,7 @@ use std::{
 
 use base64ct::{Base64, Encoding};
 use log::{debug, error, info};
-use reference_kbc::{
+use raclients::{
     client_proxy::{
         unix::UnixConnection, Error as CPError, HttpMethod, Proxy, ProxyRequest, Request,
         RequestType, Response,

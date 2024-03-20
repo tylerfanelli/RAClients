@@ -1,9 +1,9 @@
-extern crate reference_kbc;
+extern crate raclients;
 
 use std::env;
 
 use log::{debug, error, info};
-use reference_kbc::{
+use raclients::{
     client_registration::ClientRegistration,
     client_session::ClientSession,
     clients::{

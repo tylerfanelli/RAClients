@@ -5,7 +5,7 @@ use std::{
 
 use clap::{Args, Parser};
 use log::{debug, error, info};
-use reference_kbc::{
+use raclients::{
     client_registration::ClientRegistration,
     clients::{keybroker::KeybrokerRegistration, reference_kbs::ReferenceKBSRegistration},
 };
