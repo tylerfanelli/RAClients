@@ -1,4 +1,7 @@
-use std::{fs::read_to_string, path::PathBuf};
+use std::{
+    fs::{read, read_to_string},
+    path::PathBuf,
+};
 
 use clap::{Args, Parser};
 use log::{debug, error, info};
@@ -46,15 +49,19 @@ struct RefKBSArgs {
         long,
         group = "server_type",
         requires = "workload_id",
-        requires = "passphrase"
+        requires = "passphrase",
+        requires = "resource"
     )]
     reference_kbs: bool,
     /// [reference_kbs] ID of the workload
     #[arg(long, requires = "reference_kbs")]
     workload_id: Option<String>,
     /// [reference_kbs] Secret to share with the CVM
-    #[arg(long, requires = "reference_kbs")]
+    #[arg(long, requires = "reference_kbs", conflicts_with = "resource")]
     passphrase: Option<String>,
+    /// [reference_kbs] Resource blob to release to the CVM (e.g. vTPM state)
+    #[arg(long, requires = "reference_kbs", conflicts_with = "passphrase")]
+    resource: Option<PathBuf>,
 }
 
 #[derive(Parser, Debug)]
@@ -95,11 +102,16 @@ fn main() -> anyhow::Result<()> {
         ("/rvp/registration", registration)
     } else if config.rkbs_args.reference_kbs {
         let rkr = ReferenceKBSRegistration::new(config.rkbs_args.workload_id.unwrap().clone());
-        let registration = ClientRegistration::register(
-            &hex::decode(config.measurement)?,
-            config.rkbs_args.passphrase.unwrap(),
-            &rkr,
-        );
+        let resource = if config.rkbs_args.passphrase.is_some() {
+            config.rkbs_args.passphrase.unwrap()
+        } else if config.rkbs_args.resource.is_some() {
+            let file_content = read(config.rkbs_args.resource.unwrap())?;
+            hex::encode(file_content)
+        } else {
+            panic!();
+        };
+        let registration =
+            ClientRegistration::register(&hex::decode(config.measurement)?, resource, &rkr);
         ("/kbs/v0/register_workload", registration)
     } else {
         panic!();
