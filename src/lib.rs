@@ -1,5 +1,9 @@
 // Support using this crate without the standard library
 #![cfg_attr(not(feature = "std"), no_std)]
+// To handle std/no_std we re-include some items already included by std.
+// clippy (nightly) prints warnings about that, so let's silence them
+// to not complicate the inclusion.
+#![cfg_attr(feature = "std", allow(unused_imports))]
 // As long as there is a memory allocator, we can still use this crate
 // without the rest of the standard library by using the `alloc` crate
 #[cfg(feature = "alloc")]
