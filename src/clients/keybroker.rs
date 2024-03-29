@@ -49,10 +49,10 @@ impl TeeSession for KeybrokerClientSnp {
         json!(self.attestation)
     }
 
-    fn secret(&self, data: String) -> Result<String, CSError> {
+    fn secret(&self, data: String) -> Result<KbsResponse, CSError> {
         let resp: KbsResponse = serde_json::from_str(&data)?;
 
-        Ok(resp.ciphertext)
+        Ok(resp)
     }
 }
 

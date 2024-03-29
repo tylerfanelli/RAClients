@@ -1,4 +1,4 @@
-use kbs_types::{SnpAttestation, SnpRequest};
+use kbs_types::{Response as KbsResponse, SnpAttestation, SnpRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -51,8 +51,16 @@ impl TeeSession for ReferenceKBSClientSnp {
         json!(self.attestation)
     }
 
-    fn secret(&self, data: String) -> Result<String, CSError> {
-        Ok(serde_json::from_str(&data)?)
+    fn secret(&self, data: String) -> Result<KbsResponse, CSError> {
+        let response = KbsResponse {
+            ciphertext: serde_json::from_str(&data)?,
+            protected: "".to_string(),
+            encrypted_key: "".to_string(),
+            iv: "".to_string(),
+            tag: "".to_string(),
+        };
+
+        Ok(response)
     }
 }
 
