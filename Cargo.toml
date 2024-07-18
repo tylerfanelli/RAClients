@@ -5,12 +5,13 @@ edition = "2021"
 authors = ["Stefano Garzarella <sgarzare@redhat.com>"]
 
 [features]
-default = [ "std", "keybroker" ]
-alloc = [ "base64ct/alloc", "hex/alloc", "kbs-types/alloc", "serde/alloc", "serde_json/alloc" ]
+default = [ "std", "keybroker", "in_proxy", "in_svsm" ]
+alloc = [ "base64ct/alloc", "hex/alloc", "kbs-types/alloc", "serde/alloc", "serde_json/alloc", "sha2?/force-soft" ]
 std = [ "base64ct/std", "hex/std", "kbs-types/std", "serde/std", "serde_json/std" ]
 all_clients = [ "keybroker", "reference_kbs" ]
 keybroker = [ "dep:kbs-types" ]
 reference_kbs = [ "dep:kbs-types" ]
+in_proxy = [ "dep:rand_chacha", "dep:rsa", "dep:sha2", "dep:rdrand" ]
 #TODO: fix in_svsm dep
 in_svsm = []
 
@@ -23,6 +24,10 @@ kbs-types = { git = "https://github.com/virtee/kbs-types", rev = "5a9b4df73e7", 
 num-bigint = { version = "0.8", default-features = false, package = "num-bigint-dig" }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false }
+rand_chacha = { version = "0.3.1", default-features = false, optional = true }
+rsa = { version = "0.9.3", default-features = false, optional = true }
+sha2 = { version = "0.10.8", default-features = false, optional = true }
+rdrand = { version = "0.8.3", default-features = false, optional = true }
 
 [dev-dependencies]
 anyhow = "1.0.75"

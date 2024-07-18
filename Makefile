@@ -1,4 +1,4 @@
-FEATURES ?= "all_clients,in_svsm"
+FEATURES ?= "all_clients,in_svsm,in_proxy"
 
 ifdef RELEASE
 TARGET_PATH=release
