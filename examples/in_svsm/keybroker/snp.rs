@@ -6,10 +6,12 @@ use base64ct::{Base64, Encoding};
 use log::{debug, error, info};
 use raclients::{
     client_registration::ClientRegistration,
-    client_session::ClientSession,
-    clients::{
-        keybroker::{KeybrokerClientSnp, KeybrokerRegistration},
-        SnpGeneration,
+    in_svsm::{
+        client_session::ClientSession,
+        clients::{
+            keybroker::{KeybrokerClientSnp, KeybrokerRegistration},
+            SnpGeneration,
+        },
     },
 };
 use rsa::{traits::PublicKeyParts, RsaPrivateKey, RsaPublicKey};

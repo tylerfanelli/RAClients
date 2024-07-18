@@ -44,13 +44,14 @@ mod lib {
 
 pub mod client_proxy;
 pub mod client_registration;
-pub mod client_session;
-pub mod clients;
+#[cfg(feature = "in_svsm")]
+pub mod in_svsm;
 
 #[derive(Debug)]
 pub enum Error {
     // Errors related to client_session
-    CS(client_session::Error),
+    #[cfg(feature = "in_svsm")]
+    CS(in_svsm::client_session::Error),
     // Errors related to client_proxy
     CP(client_proxy::Error),
 }
@@ -61,6 +62,7 @@ impl std::error::Error for Error {}
 impl lib::fmt::Display for Error {
     fn fmt(&self, f: &mut lib::fmt::Formatter<'_>) -> lib::fmt::Result {
         match self {
+            #[cfg(feature = "in_svsm")]
             Self::CS(e) => write!(f, "Session error: {e}"),
             Self::CP(e) => write!(f, "Proxy error: {e}"),
         }

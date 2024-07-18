@@ -1,4 +1,4 @@
-use kbs_types::{Response as KbsResponse, SnpAttestation, SnpRequest};
+use kbs_types::{Response as KbsResponse, SnpAttestation, Tee};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -7,20 +7,20 @@ use crate::{
         Error as CPError, HttpMethod, Proxy, ProxyRequest, Request, RequestType, Response,
     },
     client_registration::TeeRegistration,
-    client_session::{Error as CSError, Tee, TeeSession},
-    clients::SnpGeneration,
-    lib::{String, ToString},
+    in_svsm::{
+        client_session::{Error as CSError, TeeSession},
+        clients::SnpGeneration,
+    },
+    lib::{String, ToString, Vec},
 };
 
-pub struct ReferenceKBSClientSnp {
-    request: SnpRequest,
+pub struct KeybrokerClientSnp {
     attestation: SnpAttestation,
 }
 
-impl ReferenceKBSClientSnp {
-    pub fn new(gen: SnpGeneration, workload_id: String) -> Self {
-        ReferenceKBSClientSnp {
-            request: SnpRequest { workload_id },
+impl KeybrokerClientSnp {
+    pub fn new(gen: SnpGeneration) -> Self {
+        KeybrokerClientSnp {
             attestation: SnpAttestation {
                 report: "".to_string(),
                 cert_chain: "".to_string(),
@@ -34,7 +34,7 @@ impl ReferenceKBSClientSnp {
     }
 }
 
-impl TeeSession for ReferenceKBSClientSnp {
+impl TeeSession for KeybrokerClientSnp {
     fn version(&self) -> String {
         "0.1.0".to_string()
     }
@@ -44,7 +44,7 @@ impl TeeSession for ReferenceKBSClientSnp {
     }
 
     fn extra_params(&self) -> Value {
-        json!(self.request)
+        Value::Null
     }
 
     fn evidence(&self) -> Value {
@@ -52,19 +52,13 @@ impl TeeSession for ReferenceKBSClientSnp {
     }
 
     fn secret(&self, data: String) -> Result<KbsResponse, CSError> {
-        let response = KbsResponse {
-            ciphertext: serde_json::from_str(&data)?,
-            protected: "".to_string(),
-            encrypted_key: "".to_string(),
-            iv: "".to_string(),
-            tag: "".to_string(),
-        };
+        let resp: KbsResponse = serde_json::from_str(&data)?;
 
-        Ok(response)
+        Ok(resp)
     }
 }
 
-impl ProxyRequest for ReferenceKBSClientSnp {
+impl ProxyRequest for KeybrokerClientSnp {
     fn make(
         &self,
         proxy: &mut Proxy,
@@ -83,7 +77,7 @@ impl ProxyRequest for ReferenceKBSClientSnp {
                 body: json!(&body.ok_or(CPError::BodyExpected(req_type))?),
             },
             RequestType::Key => Request {
-                endpoint: "/kbs/v0/key/".to_string() + &self.request.workload_id,
+                endpoint: "/kbs/v0/resource".to_string(),
                 method: HttpMethod::GET,
                 body: json!(""),
             },
@@ -105,31 +99,32 @@ impl ProxyRequest for ReferenceKBSClientSnp {
     }
 }
 
-pub struct ReferenceKBSRegistration {
-    workload_id: String,
+pub struct KeybrokerRegistration {
+    policy: String,
+    queries: Vec<String>,
 }
 
-impl ReferenceKBSRegistration {
-    pub fn new(workload_id: String) -> Self {
-        ReferenceKBSRegistration { workload_id }
+impl KeybrokerRegistration {
+    pub fn new(policy: String, queries: Vec<String>) -> Self {
+        KeybrokerRegistration { policy, queries }
     }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct Workload {
-    workload_id: String,
-    launch_measurement: String,
-    tee_config: String,
-    passphrase: String,
+pub struct Workload {
+    policy: String,
+    queries: Vec<String>,
+    reference: String,
+    resources: String,
 }
 
-impl TeeRegistration for ReferenceKBSRegistration {
+impl TeeRegistration for KeybrokerRegistration {
     fn register(&self, measurement: &[u8], secret: String) -> Value {
         json!(Workload {
-            workload_id: self.workload_id.clone(),
-            launch_measurement: hex::encode(measurement),
-            tee_config: "".to_string(),
-            passphrase: secret,
+            policy: self.policy.clone(),
+            queries: self.queries.clone(),
+            reference: json!({"measurement": hex::encode(measurement)}).to_string(),
+            resources: secret,
         })
     }
 }
@@ -141,11 +136,11 @@ mod tests {
     use num_bigint::BigUint;
 
     use super::*;
-    use crate::{client_registration::*, client_session::*};
+    use crate::{client_registration::*, in_svsm::client_session::*};
 
     #[test]
     fn test_session() {
-        let mut snp = ReferenceKBSClientSnp::new(SnpGeneration::Milan, "snp-workload".to_string());
+        let mut snp = KeybrokerClientSnp::new(SnpGeneration::Milan);
 
         let mut cs = ClientSession::new();
 
@@ -155,7 +150,7 @@ mod tests {
             json!({
                 "version": "0.1.0",
                 "tee": "snp",
-                "extra-params": json!({"workload_id":"snp-workload"}).to_string(),
+                "extra-params": json!(Value::Null).to_string(),
             }),
         );
 
@@ -198,26 +193,36 @@ mod tests {
         );
 
         let remote_secret = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
-        let data = json!(hex::encode(remote_secret));
+        let data = {
+            let resp = KbsResponse {
+                protected: "".to_string(),
+                encrypted_key: "".to_string(),
+                iv: "".to_string(),
+                ciphertext: hex::encode(remote_secret),
+                tag: "".to_string(),
+            };
+
+            json!(resp)
+        };
         let secret = cs.secret(data.to_string(), &snp).unwrap();
         assert_eq!(secret, remote_secret);
     }
 
     #[test]
     fn test_registration() {
-        let rkr = ReferenceKBSRegistration::new("snp-workload".to_string());
+        let kr = KeybrokerRegistration::new("my_policy".to_string(), vec!["my_query1".to_string()]);
         let registration = ClientRegistration::register(
             &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
             "secret".to_string(),
-            &rkr,
+            &kr,
         );
         assert_eq!(
             registration,
             json!({
-                "workload_id": "snp-workload",
-                "launch_measurement": "00010203040506070809",
-                "tee_config": "",
-                "passphrase": "secret",
+                "policy": "my_policy",
+                "queries": vec!["my_query1".to_string()],
+                "reference": json!({"measurement": "00010203040506070809"}).to_string(),
+                "resources": "secret",
             }),
         );
     }

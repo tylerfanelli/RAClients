@@ -5,10 +5,12 @@ use std::env;
 use log::{debug, error, info};
 use raclients::{
     client_registration::ClientRegistration,
-    client_session::ClientSession,
-    clients::{
-        reference_kbs::{ReferenceKBSClientSnp, ReferenceKBSRegistration},
-        SnpGeneration,
+    in_svsm::{
+        client_session::ClientSession,
+        clients::{
+            reference_kbs::{ReferenceKBSClientSnp, ReferenceKBSRegistration},
+            SnpGeneration,
+        },
     },
 };
 use rsa::{traits::PublicKeyParts, RsaPrivateKey, RsaPublicKey};

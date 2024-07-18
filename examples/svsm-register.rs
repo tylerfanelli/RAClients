@@ -7,7 +7,7 @@ use clap::{Args, Parser};
 use log::{debug, error, info};
 use raclients::{
     client_registration::ClientRegistration,
-    clients::{keybroker::KeybrokerRegistration, reference_kbs::ReferenceKBSRegistration},
+    in_svsm::clients::{keybroker::KeybrokerRegistration, reference_kbs::ReferenceKBSRegistration},
 };
 use reqwest::blocking::Client;
 use thiserror::Error as ThisError;
