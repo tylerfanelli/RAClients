@@ -75,14 +75,6 @@ impl From<Error> for crate::Error {
     }
 }
 
-pub trait TeeSession {
-    fn version(&self) -> String;
-    fn tee(&self) -> Tee;
-    fn extra_params(&self) -> Value;
-    fn evidence(&self) -> Value;
-    fn secret(&self, data: String) -> Result<Response, Error>;
-}
-
 pub struct ClientSessionGuest {
     priv_key: Option<RsaPrivateKey>,
     pub_key: Option<RsaPublicKey>,
@@ -102,7 +94,7 @@ impl ClientSessionGuest {
         }
     }
 
-    pub fn negotiation(&mut self, proxy: &mut Proxy, reportd_data: &mut [u8]) -> Result<(), Error> {
+    pub fn negotiation(&mut self, proxy: &mut Proxy, report_data: &mut [u8]) -> Result<(), Error> {
         let req = NegotiationRequest {
             version: "0.1.0".to_string(),
         };
@@ -149,7 +141,7 @@ impl ClientSessionGuest {
             }
         }
 
-        hasher.finalize_into(reportd_data.into());
+        hasher.finalize_into(report_data.into());
         Ok(())
     }
 
@@ -183,13 +175,7 @@ impl ClientSessionGuest {
         Ok(String::from_utf8(secret).unwrap())
     }
 
-    pub fn secret(&self, data: String, tee: &dyn TeeSession) -> Result<Vec<u8>, Error> {
-        let response = tee.secret(data)?;
-        // TODO: reference-kbs specific, convert to Base64
-        Ok(hex::decode(response.ciphertext)?)
-    }
-
-    pub fn encode_key(key: &BigUint) -> Result<String, Error> {
+    fn encode_key(key: &BigUint) -> Result<String, Error> {
         let bytes = key.to_bytes_be();
         Ok(Base64::encode_string(&bytes))
     }

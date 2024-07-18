@@ -70,3 +70,9 @@ required-features = [ "reference_kbs", "std", "in_svsm" ]
 name = "reference_kbs-svsm-in-svsm"
 path = "examples/in_svsm/reference_kbs/svsm.rs"
 required-features = [ "reference_kbs", "std", "in_svsm" ]
+
+[[example]]
+name = "proxy-reference-kbs"
+path = "examples/in_proxy/proxy-reference-kbs.rs"
+required-features = [ "std", "in_proxy" ]
+
