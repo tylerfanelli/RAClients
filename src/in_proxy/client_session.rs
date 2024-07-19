@@ -99,7 +99,9 @@ impl ClientSessionGuest {
             version: "0.1.0".to_string(),
         };
 
+        log::debug!("Sending negotiation request to the proxy...");
         proxy.write_json(&json!(req))?;
+        log::debug!("Receiving negotiation response from the proxy...");
         let data = proxy.read_json()?;
 
         let resp: NegotiationResponse = serde_json::from_value(data)?;
@@ -122,12 +124,15 @@ impl ClientSessionGuest {
                         _ => return Err(Error::ProtocolError("Key not supported".to_string())),
                     };
 
+                    log::debug!("Setting up random generator...");
                     // TODO: check if we can use new() on SVSM now
                     let rdrand = unsafe { RdSeed::new_unchecked() };
                     let mut rng = rand_chacha::ChaChaRng::from_rng(rdrand).unwrap();
 
+                    log::debug!("Generating RSA keys...");
                     let priv_key = RsaPrivateKey::new(&mut rng, bit_size)?;
                     let pub_key = RsaPublicKey::from(&priv_key);
+                    log::debug!("Generating RSA keys... Done");
 
                     hasher.update(Self::encode_key(pub_key.n())?.as_bytes());
                     hasher.update(Self::encode_key(pub_key.e())?.as_bytes());
@@ -159,7 +164,9 @@ impl ClientSessionGuest {
             }),
         };
 
+        log::debug!("Sending attestation request to the proxy...");
         proxy.write_json(&json!(req))?;
+        log::debug!("Receiving attestation response from the proxy...");
         let data = proxy.read_json()?;
 
         let resp: AttestationResponse = serde_json::from_value(data)?;
@@ -170,6 +177,7 @@ impl ClientSessionGuest {
 
         // TODO: reference-kbs specific, convert to Base64
         let secret_encrypted = hex::decode(resp.secret.unwrap())?;
+        log::debug!("Decrypting the secret...");
         let secret = priv_key.decrypt(rsa::Pkcs1v15Encrypt, &secret_encrypted)?;
 
         Ok(String::from_utf8(secret).unwrap())
