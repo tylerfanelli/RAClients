@@ -77,3 +77,7 @@ name = "proxy-reference-kbs"
 path = "examples/in_proxy/proxy-reference-kbs.rs"
 required-features = [ "std", "in_proxy" ]
 
+[[example]]
+name = "proxy-keylime"
+path = "examples/in_proxy/proxy-keylime.rs"
+required-features = [ "std", "in_proxy" ]
