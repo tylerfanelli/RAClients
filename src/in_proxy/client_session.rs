@@ -206,10 +206,6 @@ impl ClientSessionHost {
         let data = proxy.read_json()?;
 
         let req: NegotiationRequest = serde_json::from_value(data)?;
-        // TODO: check version
-        if req.version != "0.1.0" {
-            return Err(Error::VersionUnsupported);
-        }
 
         Ok(())
     }
