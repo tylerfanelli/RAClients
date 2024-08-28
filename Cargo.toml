@@ -1,60 +1,6 @@
-[package]
-name = "raclients"
-version = "0.1.0"
-edition = "2021"
-authors = ["Stefano Garzarella <sgarzare@redhat.com>"]
+[workspace]
+resolver = "1"
 
-[features]
-default = [ "std", "keybroker" ]
-alloc = [ "base64ct/alloc", "hex/alloc", "kbs-types/alloc", "serde/alloc", "serde_json/alloc" ]
-std = [ "base64ct/std", "hex/std", "kbs-types/std", "serde/std", "serde_json/std" ]
-all_clients = [ "keybroker", "reference_kbs" ]
-keybroker = [ "dep:kbs-types" ]
-reference_kbs = [ "dep:kbs-types" ]
-
-[dependencies]
-anyhow = { version = "1.0.75", default-features = false }
-base64ct = { version = "1.6.0", default-features = false }
-hex = { version = "0.4", default-features = false }
-#kbs-types = { version = "0.5.0", default-features = false }
-kbs-types = { git = "https://github.com/virtee/kbs-types", rev = "5a9b4df73e7", default-features = false, features = ["tee-snp"], optional = true }
-num-bigint = { version = "0.8", default-features = false, package = "num-bigint-dig" }
-serde = { version = "1.0", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0", default-features = false }
-
-[dev-dependencies]
-anyhow = "1.0.75"
-clap = { version = "4.4.8", features = ["derive"] }
-env_logger = "0.10.0"
-log = "0.4.20"
-rand = "0.8.5"
-reqwest = { version = "0.11.22", features = ["json", "blocking", "cookies"] }
-rsa = "0.9.3"
-sha2 = "0.10.8"
-sev = { version = "2.0", default-features = false, features = ["snp"] }
-thiserror = "1.0.50"
-
-[[example]]
-name = "svsm-register"
-path = "examples/svsm-register.rs"
-required-features = [ "keybroker", "reference_kbs", "std" ]
-
-[[example]]
-name = "keybroker-snp"
-path = "examples/keybroker/snp.rs"
-required-features = [ "keybroker", "std" ]
-
-[[example]]
-name = "keybroker-svsm"
-path = "examples/keybroker/svsm.rs"
-required-features = [ "keybroker", "std" ]
-
-[[example]]
-name = "reference_kbs-snp"
-path = "examples/reference_kbs/snp.rs"
-required-features = [ "reference_kbs", "std" ]
-
-[[example]]
-name = "reference_kbs-svsm"
-path = "examples/reference_kbs/svsm.rs"
-required-features = [ "reference_kbs", "std" ]
+members = [
+	"raclients",
+]
