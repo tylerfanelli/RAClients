@@ -67,6 +67,45 @@ pub trait FrontendClient: RacProxyConnection {
 
         serde_json::from_slice(&buf).map_err(|e| Error::Other(e.to_string()))
     }
+
+    fn secret(&mut self, json: Map<String, Value>) -> Result<Map<String, Value>, Error> {
+        let buf = serde_json::to_vec(&json).map_err(|e| {
+            Error::Other(format!(
+                "unable to convert negotiation params to JSON (bytes): {}",
+                e
+            ))
+        })?;
+
+        let len_bytes = {
+            let len: u32 = buf
+                .len()
+                .try_into()
+                .map_err(|_| Error::Other("cannot convert param bytes to u32".to_string()))?;
+
+            u32::to_ne_bytes(len)
+        };
+
+        self.write_all(&len_bytes)?;
+        self.write_all(&buf)?;
+
+        self.flush()?;
+
+        let len: usize = {
+            let mut bytes = [0u8; 4];
+            self.read_exact(&mut bytes)?;
+
+            u32::from_ne_bytes(bytes)
+                .try_into()
+                .map_err(|e: TryFromIntError| {
+                    Error::Other(format!("unable to convert response length to usize: {}", e))
+                })?
+        };
+
+        let mut buf = vec![0u8; len];
+        self.read_exact(&mut buf)?;
+
+        serde_json::from_slice(&buf).map_err(|e| Error::Other(e.to_string()))
+    }
 }
 
 pub trait FrontendServer: RacProxyConnection {
@@ -107,5 +146,30 @@ pub trait FrontendServer: RacProxyConnection {
         self.read_exact(&mut buf)?;
 
         serde_json::from_slice(&buf).map_err(|e| Error::Other(e.to_string()))
+
+        let json = json!({
+            "hello": Value::String("world".to_string()),
+        });
+
+        let buf = serde_json::to_vec(&json).map_err(|e| {
+            Error::Other(format!(
+                "unable to convert negotiation params to JSON (bytes): {}",
+                e
+            ))
+        })?;
+
+        let len_bytes = {
+            let len: u32 = buf
+                .len()
+                .try_into()
+                .map_err(|_| Error::Other("cannot convert param bytes to u32".to_string()))?;
+
+            u32::to_ne_bytes(len)
+        };
+
+        self.write_all(&len_bytes)?;
+        self.write_all(&buf)?;
+
+        self.flush()?;
     }
 }
