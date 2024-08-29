@@ -30,6 +30,9 @@ pub(crate) mod lib {
     pub use self::core::num::TryFromIntError;
 }
 
+#[cfg(all(feature = "std", not(feature = "alloc")))]
+pub mod unix;
+
 mod proxy;
 
 pub use proxy::*;
