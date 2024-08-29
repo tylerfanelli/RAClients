@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#![no_std]
-
-extern crate alloc;
+#![cfg_attr(all(not(feature = "std"), feature = "alloc"), no_std)]
 
 #[cfg(feature = "frontend")]
 pub mod frontend;

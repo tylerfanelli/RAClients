@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use alloc::{fmt::{self, Display, Formatter}, string::String};
+use crate::frontend::lib::{
+    fmt::{self, Display, Formatter},
+    string::String,
+};
 
 #[derive(Debug)]
 pub enum Error {

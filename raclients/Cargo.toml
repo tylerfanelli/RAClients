@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["frontend"]
+default = ["std", "frontend"]
+std = []
+alloc = []
 frontend = []
 
 [dependencies]
