@@ -2,5 +2,6 @@
 resolver = "1"
 
 members = [
-	"raclients",
+    "raclients",
+    "rac-proxy",
 ]
