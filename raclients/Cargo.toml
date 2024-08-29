@@ -10,3 +10,5 @@ alloc = []
 frontend = []
 
 [dependencies]
+serde = { version = "1.0.209", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1.0.127", default-features = false, features = ["alloc"] }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::frontend::lib::{
-    fmt::{self, Display, Formatter},
-    string::String,
+use super::lib::{
+    alloc::string::String,
+    core::fmt::{self, Display, Formatter},
 };
 
 #[derive(Debug)]
