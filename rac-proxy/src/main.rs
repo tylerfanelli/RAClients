@@ -1,21 +1,29 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{fs, os::unix::net::UnixListener};
+mod backend;
+
+use backend::Backend;
+
+use std::{fs, os::unix::net::UnixListener, thread};
 
 use clap::Parser;
 
-use raclients::frontend::{unix::*, FrontendServer, *};
+use raclients::frontend::unix::*;
 
 #[derive(Parser, Debug)]
 #[clap(version, about)]
 struct Args {
-    //    #[clap(long)]
-    //    url: String,
+    #[clap(long)]
+    url: String,
+
     #[clap(long)]
     unix: String,
 
     #[clap(long, short, default_value_t = false)]
     force: bool,
+
+    #[clap(long)]
+    backend: backend::server::BackendServer,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -32,10 +40,11 @@ fn main() -> anyhow::Result<()> {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                let mut conn = UnixConnection(stream);
-                let params = vec![NegotiationParam::RsaPubkeyN];
-                let evidence = conn.evidence(params);
-                println!("{:?}", evidence);
+                let conn = UnixConnection(stream);
+
+                let (url, backend) = (args.url.clone(), args.backend.clone());
+
+                thread::spawn(move || backend.attest(conn, url));
             }
             Err(_) => panic!("error"),
         }
