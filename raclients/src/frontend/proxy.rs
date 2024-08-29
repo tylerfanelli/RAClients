@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::lib::{
-    alloc::string::String,
-    core::fmt::{self, Display, Formatter},
+    alloc::{
+        string::{String, ToString},
+        vec,
+    },
+    core::{
+        fmt::{self, Display, Formatter},
+        num::TryFromIntError,
+    },
+    format, Vec,
 };
 
 #[derive(Debug)]
@@ -50,6 +57,24 @@ pub trait RacProxyRead {
             Ok(())
         }
     }
+
+    fn read_vec(&mut self) -> Result<Vec<u8>, Error> {
+        let len: usize = {
+            let mut bytes = [0u8; 4];
+            self.read_exact(&mut bytes)?;
+
+            u32::from_ne_bytes(bytes)
+                .try_into()
+                .map_err(|e: TryFromIntError| {
+                    Error::Other(format!("unable to convert response length to usize: {}", e))
+                })?
+        };
+
+        let mut buf = vec![0u8; len];
+        self.read_exact(&mut buf)?;
+
+        Ok(buf)
+    }
 }
 
 pub trait RacProxyWrite {
@@ -67,6 +92,22 @@ pub trait RacProxyWrite {
             }
         }
         Ok(())
+    }
+
+    fn write_vec(&mut self, vec: Vec<u8>) -> Result<(), Error> {
+        let len_bytes = {
+            let len: u32 = vec
+                .len()
+                .try_into()
+                .map_err(|_| Error::Other("cannot convert param bytes to u32".to_string()))?;
+
+            u32::to_ne_bytes(len)
+        };
+
+        self.write_all(&len_bytes)?;
+        self.write_all(&vec)?;
+
+        self.flush()
     }
 }
 
