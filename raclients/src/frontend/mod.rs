@@ -43,7 +43,7 @@ use serde_json::{Map, Value};
 pub enum NegotiationParam {
     RsaPubkeyN,
     RsaPubkeyE,
-    Str(String),
+    Bytes(Vec<u8>),
 }
 
 pub trait FrontendClient: RacProxyConnection {
